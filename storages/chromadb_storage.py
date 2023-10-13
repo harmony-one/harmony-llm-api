@@ -9,12 +9,9 @@ from langchain.chat_models import ChatOpenAI
 from config import config
 class ChromaStorage:
 
-    def __init__(self, path, settings: Settings):
+    def __init__(self, host, path, settings: Settings):
         self.path = path
-        self.db = chromadb.PersistentClient(path=path, settings=settings)
-
-    def get_path(self):
-        return self.path
+        self.db = chromadb.HttpClient(host=host, ssl=True, settings=settings)
         
     def get_llms(self):
         llm_predictor = LLMPredictor(llm=ChatOpenAI(
@@ -43,8 +40,7 @@ class ChromaStorage:
             return None
     
     def get_collection(self, collection_name):
-        collection = self.db.get_or_create_collection(
-            name=collection_name)
+        collection = self.db.create_collection(name=collection_name,get_or_create=True)
         return collection
     
     def store_text_array_from_url(self, text_array, collection_name): 
@@ -69,7 +65,6 @@ class ChromaStorage:
         index = VectorStoreIndex.from_documents(
             documents, storage_context=storage_context, service_context=service_context)
         index.storage_context.persist(persist_dir=f'{self.path}/{collection.id}')
-
 
     def get_vector_index(self, collection_name):
         collection = self.get_collection(collection_name)
