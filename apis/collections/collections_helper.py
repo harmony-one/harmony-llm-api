@@ -34,6 +34,17 @@ class CollectionHelper:
         else: 
             raise InvalidCollectionName("Collection Error", "collection doesn't exist, please try again later", 404)
 
+    def collection_add_document(self, collection_name, text):
+        collection = self.get_collection(collection_name)
+        if collection:
+            doc_id = self.db.generate_document_id(collection_name)
+            collection.add(ids=[doc_id], embeddings=[text])
+            return {
+                "price": 0.02
+            }
+        else:
+            raise InvalidCollectionName("Collection Error", "collection doesn't exist, please try again later", 404)
+
     def delete_collection(self, collection_name):
         collection = self.db.get_existing_collection(collection_name)
         if (collection):
