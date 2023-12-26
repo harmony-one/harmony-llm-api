@@ -189,7 +189,7 @@ class CheckDocument(Resource):
             return make_response(jsonify({"error": "An unexpected error occurred."}), 500)
 
 @api.route('/document/add')
-class WebCrawlerTextRes(Resource):
+class DocumentAddRes(Resource):
     # 
     # @copy_current_request_context
     def post(self):
