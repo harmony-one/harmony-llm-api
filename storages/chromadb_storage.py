@@ -2,10 +2,12 @@
 from llama_index import Document, VectorStoreIndex, LLMPredictor, ServiceContext, PromptHelper
 from llama_index.vector_stores import ChromaVectorStore
 from llama_index.storage.storage_context import StorageContext
-import chromadb
+from langchain.chat_models import ChatOpenAI
 from chromadb.config import Settings
 import hashlib
-from langchain.chat_models import ChatOpenAI
+import datetime
+import chromadb
+
 from config import config
 class ChromaStorage:
 
@@ -34,7 +36,10 @@ class ChromaStorage:
         valid_characters = ''.join(c for c in hashed if c.isalnum() or c in ('_', '-'))
         return f"chat{chat_id}-{valid_characters}"
 
-
+    def generate_document_id(self, collection_name):
+        now = datetime.datetime.now()
+        now_str = now.strftime("%Y%m%d%H%M%S")
+        return f"{collection_name}-{now_str}"
     def get_existing_collection(self, collection_name):
         try:
             collection = self.db.get_collection(collection_name)

@@ -87,6 +87,44 @@ class AddDocument(Resource):
             error = CollectionError(dict( collection_name = collection_name))
             error.save()
 
+@api.route('/query')
+class WebCrawlerTextRes(Resource):
+    # 
+    # @copy_current_request_context
+    def post(self):
+        """
+        Endpoint to handle LLMs request.
+        Receives a message from the user, processes it, and returns a response from the model.
+        """ 
+        data = request.json
+        prompt = data.get('prompt')
+        collection_name = data.get('collectionName')
+        url = data.get('url')
+        conversation = data.get('conversation')
+        chat_history = [ChatMessage(content=item.get('content'), role=item.get('role')) for item in conversation]
+        try:
+            current_app.logger.info(f'Inquiring a collection {collection_name}')
+            if collection_name:
+                response = collection_helper.collection_query(collection_name, prompt, chat_history) 
+                return make_response(jsonify(response), 200)
+            else:
+                current_app.logger.error('Bad request')
+                return make_response(jsonify({"error": "Bad request"}), 400)
+        except InvalidCollectionName as e:
+            
+            current_app.logger.error(e)
+            return make_response(jsonify({"error": e.args[1]}), 404)   
+        except OpenAIError as e:
+            # Handle OpenAI API errors
+            error_message = str(e)
+            current_app.logger.error(f"OpenAI API Error: {error_message}")
+            return jsonify({"error": error_message}), 500
+        except Exception as e:
+            error_message = str(e)
+            current_app.logger.error(f'ERROR ***************: {error_message}')
+            current_app.logger.error(e)
+            return make_response(jsonify({"error": "An unexpected error occurred."}), 500)
+
 @api.route('/document/<collection_name>')
 class CheckDocument(Resource):
 
@@ -150,14 +188,13 @@ class CheckDocument(Resource):
             current_app.logger.error(f"Unexpected Error: {error_message}")
             return make_response(jsonify({"error": "An unexpected error occurred."}), 500)
 
-@api.route('/query')
-class WebCrawlerTextRes(Resource):
+@api.route('/document/add')
+class DocumentAddRes(Resource):
     # 
     # @copy_current_request_context
     def post(self):
         """
-        Endpoint to handle LLMs request.
-        Receives a message from the user, processes it, and returns a response from the model.
+        Endpoint to handle to add a document to a collection.
         """ 
         data = request.json
         prompt = data.get('prompt')
@@ -168,13 +205,12 @@ class WebCrawlerTextRes(Resource):
         try:
             current_app.logger.info(f'Inquiring a collection {collection_name}')
             if collection_name:
-                response = collection_helper.collection_query(collection_name, prompt, chat_history) 
+                response = collection_helper.collection_add_document(collection_name=collection_name, text=chat_history) 
                 return make_response(jsonify(response), 200)
             else:
                 current_app.logger.error('Bad request')
                 return make_response(jsonify({"error": "Bad request"}), 400)
-        except InvalidCollectionName as e:
-            
+        except InvalidCollectionName as e:    
             current_app.logger.error(e)
             return make_response(jsonify({"error": e.args[1]}), 404)   
         except OpenAIError as e:
