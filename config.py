@@ -13,5 +13,5 @@ class Config(object):
     OPENAI_MODEL = os.getenv('OPENAI_MODEL') if os.getenv('OPENAI_MODEL') else "gpt-3.5-turbo"
     OPENAI_MAX_TOKENS = os.getenv('OPENAI_MAX_TOKENS') if os.getenv('OPENAI_MAX_TOKENS') else 600
     WEB_CRAWLER_HTTP = os.environ.get('WEB_CRAWLER_HTTP')
-
+    ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY')
 config = Config()

@@ -2,7 +2,6 @@ from flask import request, jsonify, Response, make_response, current_app as app
 from flask_restx import Namespace, Resource
 from litellm import completion
 from openai.error import OpenAIError
-import openai
 import json
 
 from res import EngMsg as msg
@@ -23,11 +22,6 @@ class LlmsCompletionRes(Resource):
         """ 
         app.logger.info('handling llm request')
         data = request.json
-        if data.get('stream') == "True":
-            data['stream'] = True # convert to boolean
-        # if not data:
-
-        #     return jsonify({"error": "Invalid request data"}), 400
         try:
             if data.get('stream') == "True":
                 data['stream'] = True # convert to boolean
