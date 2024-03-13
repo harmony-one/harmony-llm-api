@@ -8,7 +8,7 @@ from res import EngMsg as msg
 
 api = Namespace('openai', description=msg.API_NAMESPACE_OPENAI_DESCRIPTION)
 
-ALLOWED_EXTENSIONS = {'wav', 'm4a', 'mp3'}
+ALLOWED_EXTENSIONS = {'wav', 'm4a', 'mp3', 'mp4'}
 def get_transcription(path):
   try:
       audio_file = open(path, 'rb')
