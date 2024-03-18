@@ -4,7 +4,7 @@ from werkzeug.utils import secure_filename
 from openai.error import OpenAIError
 import openai
 import os
-from res import EngMsg as msg
+from res import EngMsg as msg, CustomError
 
 api = Namespace('openai', description=msg.API_NAMESPACE_OPENAI_DESCRIPTION)
 
@@ -58,10 +58,10 @@ class UploadAudioFile(Resource):
         # Handle OpenAI API errors
         error_message = str(e)
         app.logger.error(f"OpenAI API Error: {error_message}")
-        return jsonify({"error": error_message}), 500
+        raise CustomError(500, error_message)
     except Exception as e:
         # Handle other unexpected errors
         error_message = str(e)
         app.logger.error(f"Unexpected Error: {error_message}")
-        return jsonify({"error": "An unexpected error occurred."}), 500
+        raise CustomError(500, "An unexpected error occurred.")
 

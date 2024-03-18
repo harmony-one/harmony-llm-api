@@ -1,8 +1,9 @@
-from flask import Flask
+from flask import Flask, jsonify
 from flask_session import Session
 from flask_cors import CORS
 from apis import api
 from models import db
+from res import CustomError
 import config as app_config
 import os
 import logging
@@ -43,7 +44,15 @@ def index():
 @app.route('/health')
 def health():
     return "I'm healthy", 200
-
+@app.errorhandler(CustomError)
+def handle_custom_error(error):
+    response = {
+        "error": {
+            "status_code": error.error_code,
+            "message": error.message
+        }
+    }
+    return jsonify(response), error.error_code
 
 if __name__ == '__main__':
     # from waitress import serve
