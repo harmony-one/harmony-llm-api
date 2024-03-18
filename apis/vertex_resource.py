@@ -8,7 +8,7 @@ import openai
 import vertexai
 import json
 
-from res import EngMsg as msg
+from res import EngMsg as msg, CustomError
 
 with open(
     "res/service_account.json"
@@ -74,9 +74,57 @@ class VertexCompletionRes(Resource):
             # Handle OpenAI API errors
             error_message = str(e)
             app.logger.error(f"OpenAI API Error: {error_message}")
-            return make_response(jsonify({"error": error_message}), 500)
+            raise CustomError(500, error_message)
         except Exception as e:
             # Handle other unexpected errors
             error_message = str(e)
             app.logger.error(f"Unexpected Error: {error_message}")
-            return make_response(jsonify({"error": "An unexpected error occurred."}), 500)
+            raise CustomError(500, "An unexpected error occurred.")
+
+
+@api.route('/completions/gemini') 
+class VertexGeminiCompletionRes(Resource):
+    
+    def post(self): 
+        """
+        Endpoint to handle Google's Vertex/Palm2 LLMs.
+        Receives a message from the user, processes it, and returns a response from the model.
+        """
+        app.logger.info('handling chat-bison request')
+        data = request.json
+        if data.get('stream') == "True":
+            data['stream'] = True # convert to boolean
+        try:
+            if data.get('stream') == "True":
+                data['stream'] = True # convert to boolean
+            # pass in data to completion function, unpack data
+            
+            chat_model = ChatModel.from_pretrained("chat-bison@001")
+            parameters = {
+                "max_output_tokens": 800,
+                "temperature": 0.2
+            }
+            prompt = data.get('messages')[-1]
+            messages = data.get('messages')
+            messages.pop()
+            history = [ChatMessage(item.get('content'), item.get('author')) for item in messages]
+            chat = chat_model.start_chat(
+                max_output_tokens=800,
+                message_history=history
+            )
+            response = chat.send_message(f"{prompt.get('content')}", **parameters)
+            # if data['stream'] == True: # use generate_responses to stream responses
+            #     return Response(data_generator(response), mimetype='text/event-stream')
+            
+            # return f"{response}", 200 # non streaming responses
+            return make_response(jsonify(response), 200)
+        except openai.error.OpenAIError as e:
+            # Handle OpenAI API errors
+            error_message = str(e)
+            app.logger.error(f"OpenAI API Error: {error_message}")
+            raise CustomError(500, error_message)
+        except Exception as e:
+            # Handle other unexpected errors
+            error_message = str(e)
+            app.logger.error(f"Unexpected Error: {error_message}")
+            raise CustomError(500, "An unexpected error occurred.")

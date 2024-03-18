@@ -1,9 +1,9 @@
-from flask import request, jsonify, Response, make_response, current_app as app
+from flask import request, jsonify, Response, make_response, abort, current_app as app
 from flask_restx import Namespace, Resource
 import anthropic
 import json
 
-from res import EngMsg as msg
+from res import EngMsg as msg, CustomError
 from config import config
 
 api = Namespace('anthropic', description=msg.API_NAMESPACE_OPENAI_DESCRIPTION)
@@ -55,11 +55,13 @@ class AnthropicCompletionRes(Resource):
         responseJson = extract_response_data(response)
     
     except anthropic.AnthropicError as e:
-      app.logger.error(f"Anthropic API Error: {str(e)}")
-      return jsonify({"error": str(e)}), 500
+        error_code = e.status_code
+        error_json = json.loads(e.response.text)
+        error_message = error_json["error"]["message"]
+        raise CustomError(error_code, error_message)
     except Exception as e:
-      app.logger.error(f"Unexpected Error: {str(e)}")
-      return jsonify({"error": "An unexpected error occurred."}), 500
+        app.logger.error(f"Unexpected Error: {str(e)}")
+        raise CustomError(500, "An unexpected error occurred.")
     
     return responseJson, 200
   

@@ -4,7 +4,7 @@ from litellm import completion
 from openai.error import OpenAIError
 import json
 
-from res import EngMsg as msg
+from res import EngMsg as msg, CustomError
 
 api = Namespace('llms', description=msg.API_NAMESPACE_LLMS_DESCRIPTION)
 
@@ -33,12 +33,12 @@ class LlmsCompletionRes(Resource):
             # Handle OpenAI API errors
             error_message = str(e)
             app.logger.error(f"OpenAI API Error: {error_message}")
-            return jsonify({"error": error_message}), 500
+            raise CustomError(500, f"OpenAI API Error: {error_message}")
         except Exception as e:
             # Handle other unexpected errors
             error_message = str(e)
             app.logger.error(f"Unexpected Error: {error_message}")
-            return jsonify({"error": "An unexpected error occurred."}), 500
+            raise CustomError(500, f"An unexpected error occurred.")
         # return response, 200
         return make_response(jsonify(response), 200)
 
