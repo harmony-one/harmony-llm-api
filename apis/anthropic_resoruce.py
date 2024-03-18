@@ -12,9 +12,22 @@ client = anthropic.Anthropic(
   api_key=config.ANTHROPIC_API_KEY,
 )
 
+def custom_serializer(obj):
+    if obj.type != 'message_start':
+        return obj.__dict__
+    return obj
+
 def data_generator(response):
-  for chunk in response:
-    yield f"data: {json.dumps(chunk)}\n\n"
+    for event in response:
+        if event.type == 'message_start':
+            input_token = event.message.usage.input_tokens
+            yield f"Input Token: {input_token}"
+        elif event.type == 'content_block_delta':
+            text = event.delta.text
+            yield f"Text: {text}"
+        elif event.type == 'message_delta':
+            output_tokens = event.usage.output_tokens
+            yield f"Output Tokens: {output_tokens}"
 
 def extract_response_data(response):
     return response.model_dump_json()
@@ -32,12 +45,13 @@ class AnthropicCompletionRes(Resource):
     try:
         if data.get('stream') == "True":
             data['stream'] = True  # Convert stream to boolean
-  
+
         response = client.messages.create(**data)
-        
+
         if data.get('stream'):
             return Response(data_generator(response), mimetype='text/event-stream')
         
+        # response = client.messages.create(**data)
         responseJson = extract_response_data(response)
     
     except anthropic.AnthropicError as e:
@@ -48,3 +62,4 @@ class AnthropicCompletionRes(Resource):
       return jsonify({"error": "An unexpected error occurred."}), 500
     
     return responseJson, 200
+  
