@@ -1,8 +1,9 @@
-from flask import Flask
+from flask import Flask, jsonify
 from flask_session import Session
 from flask_cors import CORS
 from apis import api
 from models import db
+from res import CustomError
 import config as app_config
 import os
 import logging
@@ -12,6 +13,9 @@ app = Flask(__name__)
 app.config['SECRET_KEY']=app_config.config.SECRET_KEY
 app.config['SESSION_PERMANENT'] = True
 app.config['SQLALCHEMY_DATABASE_URI']='sqlite:///:memory:'
+UPLOAD_FOLDER = 'uploads/'
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
 # if app_config.config.ENV == 'development':
 #     app.config['SQLALCHEMY_DATABASE_URI']='sqlite:///:memory:'
 # else:
@@ -32,7 +36,6 @@ app.app_context().push()
 db.create_all()
 
 CORS(app)
-
 logging.info(f'****** APP Enviroment={app_config.config.ENV} *******')
 @app.route('/')
 def index():
@@ -41,7 +44,15 @@ def index():
 @app.route('/health')
 def health():
     return "I'm healthy", 200
-
+@app.errorhandler(CustomError)
+def handle_custom_error(error):
+    response = {
+        "error": {
+            "status_code": error.error_code,
+            "message": error.message
+        }
+    }
+    return jsonify(response), error.error_code
 
 if __name__ == '__main__':
     # from waitress import serve
@@ -51,3 +62,6 @@ if __name__ == '__main__':
         serve(app, host="0.0.0.0", port=8080) 
     else:
         app.run(debug=True)
+
+
+# python main.py

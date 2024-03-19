@@ -7,7 +7,7 @@ import threading
 from llama_index.llms.base import ChatMessage
 from res import EngMsg as msg
 from storages import chromadb
-from res import PdfFileInvalidFormat, InvalidCollectionName, InvalidCollection
+from res import PdfFileInvalidFormat, InvalidCollectionName, InvalidCollection, CustomError
 from .collections_helper import CollectionHelper
 from models import db
 from services import WebCrawling, PdfHandler
@@ -33,12 +33,12 @@ class CollectionHandler(Resource):
                 # collection_helper.delete_folders()
                 return 'OK', 204
             else:
-                return make_response(jsonify({"error": "An unexpected error occurred."}), 500)
+                raise CustomError(500, "An unexpected error occurred.")
         except Exception as e:
             current_app.logger.error(e)
             error_message = str(e)
             current_app.logger.error(f"Unexpected Error: {error_message}")
-            return make_response(jsonify({"error": "An unexpected error occurred."}), 500)
+            raise CustomError(500, f"Unexpected Error: {error_message}")
 
 @api.route('/document')
 class AddDocument(Resource):
@@ -64,7 +64,7 @@ class AddDocument(Resource):
         except Exception as e:
             error_message = str(e)
             current_app.logger.error(f"Unexpected Error: {error_message}")
-            return make_response(jsonify({"error": "An unexpected error occurred."}), 500)
+            raise CustomError(500, "An unexpected error occurred.")
 
     def __collection_request_handler(self, url, collection_name, file_name, context):
         try:
@@ -129,7 +129,7 @@ class CheckDocument(Resource):
             current_app.logger.error(e)
             error_message = str(e)
             current_app.logger.error(f"Unexpected Error: {error_message}")
-            return make_response(jsonify({"error": "An unexpected error occurred."}), 500)
+            raise CustomError(500, "An unexpected error occurred.")
     
     @api.doc(params={"collection_name": msg.API_DOC_PARAMS_COLLECTION_NAME})
     def delete(self, collection_name):
@@ -148,7 +148,7 @@ class CheckDocument(Resource):
         except Exception as e:
             error_message = str(e)
             current_app.logger.error(f"Unexpected Error: {error_message}")
-            return make_response(jsonify({"error": "An unexpected error occurred."}), 500)
+            raise CustomError(500, "An unexpected error occurred.")
 
 @api.route('/query')
 class WebCrawlerTextRes(Resource):
@@ -174,19 +174,18 @@ class WebCrawlerTextRes(Resource):
                 current_app.logger.error('Bad request')
                 return make_response(jsonify({"error": "Bad request"}), 400)
         except InvalidCollectionName as e:
-            
             current_app.logger.error(e)
-            return make_response(jsonify({"error": e.args[1]}), 404)   
+            raise CustomError(404, e.args[1])
         except OpenAIError as e:
             # Handle OpenAI API errors
             error_message = str(e)
             current_app.logger.error(f"OpenAI API Error: {error_message}")
-            return jsonify({"error": error_message}), 500
+            raise CustomError(500, error_message)
         except Exception as e:
             error_message = str(e)
             current_app.logger.error(f'ERROR ***************: {error_message}')
             current_app.logger.error(e)
-            return make_response(jsonify({"error": "An unexpected error occurred."}), 500)
+            raise CustomError(500, "An unexpected error occurred.")
 
 
 @api.errorhandler(PdfFileInvalidFormat)

@@ -2,10 +2,9 @@ from flask import request, jsonify, Response, make_response, current_app as app
 from flask_restx import Namespace, Resource
 from litellm import completion
 from openai.error import OpenAIError
-import openai
 import json
 
-from res import EngMsg as msg
+from res import EngMsg as msg, CustomError
 
 api = Namespace('llms', description=msg.API_NAMESPACE_LLMS_DESCRIPTION)
 
@@ -23,11 +22,6 @@ class LlmsCompletionRes(Resource):
         """ 
         app.logger.info('handling llm request')
         data = request.json
-        if data.get('stream') == "True":
-            data['stream'] = True # convert to boolean
-        # if not data:
-
-        #     return jsonify({"error": "Invalid request data"}), 400
         try:
             if data.get('stream') == "True":
                 data['stream'] = True # convert to boolean
@@ -39,12 +33,12 @@ class LlmsCompletionRes(Resource):
             # Handle OpenAI API errors
             error_message = str(e)
             app.logger.error(f"OpenAI API Error: {error_message}")
-            return jsonify({"error": error_message}), 500
+            raise CustomError(500, f"OpenAI API Error: {error_message}")
         except Exception as e:
             # Handle other unexpected errors
             error_message = str(e)
             app.logger.error(f"Unexpected Error: {error_message}")
-            return jsonify({"error": "An unexpected error occurred."}), 500
+            raise CustomError(500, f"An unexpected error occurred.")
         # return response, 200
         return make_response(jsonify(response), 200)
 
