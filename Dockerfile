@@ -22,6 +22,8 @@ RUN apt-get update && apt-get install -y \
 # Install the project dependencies
 # RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
+# anthropic package is not installed with the previous command
+RUN pip install --no-cache-dir anthropic
  
 # Expose the port on which the Flask app will run
 EXPOSE 8080
