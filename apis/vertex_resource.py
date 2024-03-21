@@ -4,7 +4,7 @@ from vertexai.language_models import ChatModel, ChatMessage
 from vertexai.preview.generative_models import GenerativeModel, Content, Part
 from google.oauth2 import service_account
 import google.cloud.aiplatform as aiplatform
-from litellm import litellm
+# from litellm import litellm
 import openai
 import vertexai
 import json
@@ -29,28 +29,25 @@ with open("res/service_account.json", encoding="utf-8") as f:
     project_id = project_json["project_id"]
 
 
-litellm.vertex_project = project_id
-litellm.vertex_location = "us-central1"
+# litellm.vertex_project = project_id
+# litellm.vertex_location = "us-central1"
 vertexai.init(project=project_id, location="us-central1")
 
 api = Namespace('vertex', description=msg.API_NAMESPACE_VERTEX_DESCRIPTION)
 
 
-def data_generator(response):
+def basic_data_generator(response):
     for event in response:
-        print("here", event.text)
         yield f"Text: {event.text}"
 
-        # if event.type == 'message_start':
-        #     input_token = event.message.usage.input_tokens
-        #     yield f"Input Token: {input_token}"
-        # elif event.type == 'content_block_delta':
-        #     text = event.delta.text
-        #     yield f"Text: {text}"
-        # elif event.type == 'message_delta':
-        #     output_tokens = event.usage.output_tokens
-        #     yield f"Output Tokens: {output_tokens}"
-
+def data_generator(response, input_token_count, model: GenerativeModel):
+    completion = ""
+    for event in response:
+        completion += event.text + " "
+        yield f"Text: {event.text}"
+    completionTokens = model.count_tokens(completion)
+    yield f"Input Token: {input_token_count}"
+    yield f"Output Tokens: {completionTokens.total_billable_characters}"
 
 @api.route('/completions')
 class VertexCompletionRes(Resource):
@@ -110,7 +107,7 @@ class VertexGeminiCompletionRes(Resource):
         Endpoint to handle Google's Vertex/Gemini.
         Receives a message from the user, processes it, and returns a stream response from the model.
         """
-        app.logger.info('handling chat-bison request')
+        app.logger.info('handling gemini request')
         data = request.json
         if data.get('stream') == "True":
             data['stream'] = True  # convert to boolean
@@ -126,7 +123,6 @@ class VertexGeminiCompletionRes(Resource):
             }
             prompt = data.get('messages')[-1]
             messages = data.get('messages')
-            messages.pop()
             history = []
             for item in messages:
                 if isinstance(item, dict) and 'parts' in item and isinstance(item['parts'], dict) and 'text' in item['parts']:
@@ -138,14 +134,14 @@ class VertexGeminiCompletionRes(Resource):
                         history.append(temp_content)
                 else:
                     print("Skipping item - Invalid format:", item)
-
+            inputTokens = chat_model.count_tokens(history)
+            history.pop() # removing prompt
             chat = chat_model.start_chat(
                 history=history
             )
             if data['stream'] == True: # use generate_responses to stream responses
                 response = chat.send_message(content=prompt['parts']['text'], generation_config=parameters, stream=True)
-                return Response(data_generator(response), mimetype='text/event-stream')
-            print(response)
+                return Response(data_generator(response, inputTokens.total_billable_characters, chat_model), mimetype='text/event-stream')
             return make_response(jsonify(response), 200)
         except openai.error.OpenAIError as e:
             # Handle OpenAI API errors
