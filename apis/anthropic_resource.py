@@ -132,9 +132,10 @@ class AnthropicPDFSummary(Resource):
                 result = get_pdf_text(pdf_file)
                 if (result.get('text')):
                     messages = create_message(result.get('text'))
-                    fco = client.messages.create(
-                        messages=messages, model=model, system=system, max_tokens=max_tokens)
-                    print(fco)
+                    # fco = client.messages.create(
+                    #     messages=messages, model=model, system=system, max_tokens=max_tokens)
+                    # print(fco)
+                    os.remove(result.path)
                     data = {'message': msg.TEMP_PDF_INQUIRY_RESPONSE}
                     response = jsonify(data)
                     response.headers['Content-Type'] = 'application/json'
