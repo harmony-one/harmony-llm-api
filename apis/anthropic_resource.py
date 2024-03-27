@@ -30,7 +30,7 @@ def data_generator(response):
             yield f"Input Token: {input_token}"
         elif event.type == 'content_block_delta':
             text = event.delta.text
-            yield f"Text: {text}"
+            yield f"{text}"
         elif event.type == 'message_delta':
             output_tokens = event.usage.output_tokens
             yield f"Output Tokens: {output_tokens}"
