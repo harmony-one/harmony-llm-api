@@ -10,14 +10,12 @@ from services import PdfHandler
 from werkzeug.utils import secure_filename
 from werkzeug.datastructures import FileStorage
 
-
-api = Namespace('anthropic', description=msg.API_NAMESPACE_OPENAI_DESCRIPTION)
+api = Namespace('anthropic', description=msg.API_NAMESPACE_ANTHROPIC_DESCRIPTION)
 
 client = anthropic.Anthropic(
-    api_key=config.ANTHROPIC_API_KEY,
+    # defaults to os.environ.get("ANTHROPIC_API_KEY")
+    api_key=config.ANTHROPIC_API_KEY, 
 )
-print(client.api_key)
-
 
 def custom_serializer(obj):
     if obj.type != 'message_start':
@@ -124,22 +122,19 @@ class AnthropicPDFSummary(Resource):
         try:
             args = parser.parse_args()
             pdf_file = args.get('pdf', None)
-            model = args.get('model', 'claude-3-opus-20240229')
-            system = args.get('system', 'Summarize this text')
-            max_tokens = args.get('maxTokens', 1000)
             url = args.get('url', None)
+            model = args['model'] if args.get('model') is not None else 'claude-3-opus-20240229'
+            system = args['system'] if args.get('system') is not None else 'Summarize this text'
+            max_tokens = args['maxTokens'] if args.get('maxTokens') is not None else '1000'
             if pdf_file:
                 result = get_pdf_text(pdf_file)
                 if (result.get('text')):
                     messages = create_message(result.get('text'))
-                    # fco = client.messages.create(
-                    #     messages=messages, model=model, system=system, max_tokens=max_tokens)
-                    # print(fco)
-                    os.remove(result.path)
-                    data = {'message': msg.TEMP_PDF_INQUIRY_RESPONSE}
-                    response = jsonify(data)
-                    response.headers['Content-Type'] = 'application/json'
-                    return response
+                    response = client.messages.create(
+                        messages=messages, model=model, system=system, max_tokens=int(max_tokens))
+                    responseJson = extract_response_data(response)
+                    os.remove(result.get('path'))
+                    return responseJson, 200
             elif (url and url.lower().endswith('.pdf')):
                 pdf_handler = PdfHandler()
                 data = pdf_handler.get_pdf_from_url(url)
@@ -147,13 +142,10 @@ class AnthropicPDFSummary(Resource):
                 print(pdf_text)
                 if (pdf_text):
                     messages = create_message(pdf_text)
-                    # response = client.messages.create(
-                    #     messages=messages, model=model, system=system, max_tokens=max_tokens)
-                    data = {'message': msg.TEMP_PDF_INQUIRY_RESPONSE}
-                    response = jsonify(data)
-                    response.headers['Content-Type'] = 'application/json'
-                    print('response', response)
-                    return response
+                    response = client.messages.create(
+                        messages=messages, model=model, system=system, max_tokens=max_tokens)
+                    responseJson = extract_response_data(response)
+                    return responseJson, 200
             else:
                 raise CustomError(400, "Bad request")
 

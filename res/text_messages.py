@@ -9,7 +9,8 @@ pass applicant tracking systems and highlight expertise."""
     API_NAMESPACE_VERTEX_DESCRIPTION = 'Google Vertex/Palm2 APIs'
     API_NAMESPACE_LLMS_DESCRIPTION = 'LLMs APIs'
     API_NAMESPACE_OPENAI_DESCRIPTION = 'OpenAI APIs'
-    
+    API_NAMESPACE_ANTHROPIC_DESCRIPTION = 'Claude APIs'
+
     API_DOC_PARAMS_COLLECTION_NAME = 'Collection Name'
     API_DOC_PARAMS_DATA = 'Audio file'
     API_DOC_PARAMS_PDF = 'PDF file (required if no URL is provided)'
