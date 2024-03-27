@@ -24,6 +24,7 @@ RUN apt-get update && apt-get install -y \
 RUN pip install --no-cache-dir -r requirements.txt
 # anthropic package is not installed with the previous command
 RUN pip install --no-cache-dir anthropic
+RUN pip install --no-cache-dir vertexai
  
 # Expose the port on which the Flask app will run
 EXPOSE 8080
