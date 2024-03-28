@@ -12,10 +12,19 @@ from werkzeug.datastructures import FileStorage
 
 api = Namespace('anthropic', description=msg.API_NAMESPACE_ANTHROPIC_DESCRIPTION)
 
+
 client = anthropic.Anthropic(
     # defaults to os.environ.get("ANTHROPIC_API_KEY")
     api_key=config.ANTHROPIC_API_KEY, 
 )
+
+parser = api.parser()
+parser.add_argument('pdf', type=FileStorage, location='files')
+parser.add_argument('model', type=str)
+parser.add_argument('system', type=str)
+parser.add_argument('maxTokens', type=int)
+parser.add_argument('url', type=str)
+parser.add_argument('jobDescription', type=str)
 
 def custom_serializer(obj):
     if obj.type != 'message_start':
@@ -113,12 +122,6 @@ class AnthropicPDFSummary(Resource):
         """
         app.logger.info('handling pdf summary request')
 
-        parser = api.parser()
-        parser.add_argument('pdf', type=FileStorage, location='files')
-        parser.add_argument('model', type=str)
-        parser.add_argument('system', type=str)
-        parser.add_argument('maxTokens', type=int)
-        parser.add_argument('url', type=str)
         try:
             args = parser.parse_args()
             pdf_file = args.get('pdf', None)
@@ -139,7 +142,6 @@ class AnthropicPDFSummary(Resource):
                 pdf_handler = PdfHandler()
                 data = pdf_handler.get_pdf_from_url(url)
                 pdf_text = extract_text(data)
-                print(pdf_text)
                 if (pdf_text):
                     messages = create_message(pdf_text)
                     response = client.messages.create(
@@ -154,6 +156,101 @@ class AnthropicPDFSummary(Resource):
             error_json = json.loads(e.response.text)
             error_message = error_json["error"]["message"]
             raise CustomError(error_code, error_message)
+        except Exception as e:
+            app.logger.error(f"Unexpected Error: {str(e)}")
+            raise CustomError(500, "An unexpected error occurred.")
+
+@api.route('/cv/analyze')
+class AnthropicCVAnalyze(Resource):
+
+    def extract_value(self, text, start_key, end_key):
+        start_index = text.find(start_key) + len(start_key)
+        end_index = text.find(end_key, start_index)
+        if end_index == -1:
+            end_index = len(text)
+        return text[start_index:end_index].strip()
+    
+    @api.doc(params={"pdf": msg.API_DOC_PARAMS_PDF_ISOLATE,
+                    "jobDescription": msg.API_DOC_PARAMS_JOB_DESCRIPTION,
+                    "model": msg.API_DOC_PARAMS_MODEL,
+                    "maxTokens": msg.API_DOC_PARAMS_MAX_TOKENS})
+    def post(self):
+        """
+        Analyze a given CV with a given Job Description.
+
+        """
+        app.logger.info('handling CV analysis request')
+        try:
+            args = parser.parse_args()
+            pdf_file = args.get('pdf', None)
+            job_description = args.get('jobDescription')
+            model = args['model'] if args.get('model') is not None else 'claude-3-opus-20240229'
+            max_tokens = args['maxTokens'] if args.get('maxTokens') is not None else '1024'
+            if pdf_file and job_description:
+                resume = get_pdf_text(pdf_file)
+
+                prompt = f"""
+                Please analyze the following resume in relation to the given job description:
+
+                Job Description:
+                {job_description}
+
+                Resume:
+                {resume}
+
+                Provide the following:
+                1. A score out of 100 for the matching of the candidate to the job description.
+                2. A short paragraph explaining the reasoning behind the score.
+                3. Three single-sentence suggestions for improving the resume, separated by newlines and numbered.
+
+                Please format your response as follows:
+
+                Score: {{score}}
+
+                Reasoning: {{reasoning}}
+
+                Suggested Improvements:
+                1. {{improvement1}}
+                2. {{improvement2}}
+                3. {{improvement3}}
+                """
+
+                response = client.messages.create(
+                    model=model,
+                    max_tokens=int(max_tokens),
+                    messages=[
+                        {"role": "user", "content": prompt}
+                    ]
+                )
+
+                result = str(response.content)
+
+                # Extract the relevant parts from the response
+                score = self.extract_value(result, "Score: ", "\\n")
+                reasoning = self.extract_value(result, "Reasoning: ", "\\n\\nSuggested Improvements:").replace("\\n", "\n\n").strip()
+                improvements_text = self.extract_value(result, "Suggested Improvements:", "\", type='text')]").strip()
+                improvements = [imp.strip().replace("\\n", "").split(". ", 1)[-1] for imp in improvements_text.split('\\n') if imp.strip()]
+
+                # Format the output
+                output = f"""
+                Score: {score}
+
+                Reasoning:\n\n{reasoning}
+
+                Suggested Improvements:
+                """
+
+                for i in range(len(improvements)):
+                    output += f"\n{i + 1}. {improvements[i]}"
+
+                return output.strip()
+            else: 
+                raise CustomError(400, "Bad request")
+        except anthropic.AnthropicError as e:
+                    error_code = e.status_code
+                    error_json = json.loads(e.response.text)
+                    error_message = error_json["error"]["message"]
+                    raise CustomError(error_code, error_message)
         except Exception as e:
             app.logger.error(f"Unexpected Error: {str(e)}")
             raise CustomError(500, "An unexpected error occurred.")
