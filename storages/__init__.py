@@ -9,5 +9,4 @@ client_settings = Settings(
 )
 
 path = config.CHROMA_SERVER_PATH
-
 chromadb = ChromaStorage(path, client_settings)
