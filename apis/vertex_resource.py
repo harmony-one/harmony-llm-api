@@ -44,7 +44,7 @@ def data_generator(response, input_token_count, model: GenerativeModel):
     completion = ""
     for event in response:
         completion += event.text + " "
-        yield f"Text: {event.text}"
+        yield f"{event.text}"
     completionTokens = model.count_tokens(completion)
     yield f"Input Token: {input_token_count}"
     yield f"Output Tokens: {completionTokens.total_billable_characters}"
