@@ -111,15 +111,13 @@ class VertexGeminiCompletionRes(Resource):
         Endpoint to handle Google's Vertex/Gemini.
         Receives a message from the user, processes it, and returns a stream response from the model.
         """
-        app.logger.info('handling gemini request')
         data = request.json
         try:
             if data.get('stream') == "True":
                 data['stream'] = True  # convert to boolean
             model = data.get('model')
-            print(model)
+            app.logger.info(f'handling gemini request using {model}')
             chat_model = genai.GenerativeModel(model)
-            print("MODEL", chat_model._model_name)
             parameters = {
                 "max_output_tokens": 800,
                 "temperature": 0.1,
