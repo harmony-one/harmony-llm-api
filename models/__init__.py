@@ -7,4 +7,4 @@ class Base(DeclarativeBase):
 db = SQLAlchemy(model_class=Base)
 
 from .collection_error_model import CollectionError
-
+from .tools_beta_message import  ToolsBetaMessage

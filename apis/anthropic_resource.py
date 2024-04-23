@@ -3,12 +3,15 @@ from flask_restx import Namespace, Resource
 import anthropic
 import json
 import os
+from models import ToolsBetaMessage
 from res import EngMsg as msg, CustomError
 from config import config
 from pdfminer.high_level import extract_text
 from services import PdfHandler
 from werkzeug.utils import secure_filename
 from werkzeug.datastructures import FileStorage
+
+from .model_tools import tool_def, get_ticker_info
 
 api = Namespace('anthropic', description=msg.API_NAMESPACE_ANTHROPIC_DESCRIPTION)
 
@@ -44,6 +47,19 @@ def data_generator(response):
             output_tokens = event.usage.output_tokens
             yield f"Output Tokens: {output_tokens}"
 
+
+def extract_tool_response_data(message):
+
+    betaMessage = ToolsBetaMessage(id=message.id,
+                                    content=message.content,
+                                    model=message.model,
+                                    role=message.role,
+                                    stop_reason=message.stop_reason,
+                                    stop_sequence=message.stop_sequence,
+                                    type= message.type,
+                                    usage=message.usage)
+    
+    return json.dumps(betaMessage.to_dict())
 
 def extract_response_data(response):
     return response.model_dump_json()
@@ -90,7 +106,6 @@ class AnthropicCompletionRes(Resource):
                 data['stream'] = True  # Convert stream to boolean
 
             response = client.messages.create(**data)
-
             if data.get('stream'):
                 return Response(data_generator(response), mimetype='text/event-stream')
 
@@ -108,6 +123,103 @@ class AnthropicCompletionRes(Resource):
 
         return responseJson, 200
 
+@api.route('/completions/tools')
+class AnthropicCompletionRes(Resource):
+
+    def post(self):
+        """
+        Endpoint to handle Anthropic request.
+        Receives a message from the user, processes it, and returns a response from the model.
+        """
+        app.logger.info('handling anthropic request')
+        data = request.json
+        try:
+            if data.get('stream') == "True":
+                data['stream'] = True  # Convert stream to boolean
+            
+            messages = data.get('messages')
+            model = data.get('model')
+            system = data.get('system')
+            max_tokens = data.get('max_tokens')
+            response = client.beta.tools.messages.create(**data, tools=[
+                tool_def()
+            ])
+            messages.append({
+                'role': "assistant",
+                'content': response.content
+            })
+            while (response.stop_reason == "tool_use"): 
+                # True:
+                tool_use_blocks = [block for block in response.content if block.type == "tool_use"]
+                print('SIZE', len(tool_use_blocks))
+                
+                if (len(tool_use_blocks) > 1):
+                    content = []
+                    for block in tool_use_blocks:
+                        tool_name = block.name
+                        tool_input = block.input
+                        print(f"\nTool Used: {tool_name}")
+                        print(f"Tool Input: {tool_input}")
+
+                        info = get_ticker_info(tool_input.get('ticker'))
+
+                        content.append({
+                                'type': 'tool_result',
+                                'tool_use_id': block.id,
+                                'content': info
+                            })
+
+                    messages.append({
+                            'role': 'user',
+                            'content': content
+                        })
+                else: 
+                    block = tool_use_blocks[0]
+                    tool_name = block.name
+                    tool_input = block.input
+                    print(f"\nTool Used: {tool_name}")
+                    print(f"Tool Input: {tool_input}")
+
+                    info = get_ticker_info(tool_input.get('ticker'))
+
+                    messages.append({
+                            'role': 'user',
+                            'content': {
+                                'type': 'tool_result',
+                                'tool_use_id': block.id,
+                                'content': info
+                            }
+                        })
+                
+                response = client.beta.tools.messages.create(
+                    model=model,
+                    max_tokens=max_tokens,
+                    system=system,
+                    messages=messages,
+                    stream=False,
+                    tools=[
+                    tool_def()
+                ])
+            
+            print('RESULT ***', response)
+            
+            if data.get('stream'):
+                return Response(data_generator(response), mimetype='text/event-stream')
+
+            responseJson = extract_tool_response_data(response)
+
+        except anthropic.AnthropicError as e:
+            print('ERROR', e)
+            error_code = e.status_code
+            error_json = json.loads(e.response.text)
+            error_message = error_json["error"]["message"]
+            raise CustomError(error_code, error_message)
+        except Exception as e:
+            app.logger.error(f"Ucnexpected Error: {str(e)}")
+            raise CustomError(500, "An unexpected error occurred.")
+        
+        return responseJson, 200
+    
 @api.route('/pdf/inquiry')
 class AnthropicPDFSummary(Resource):
 
@@ -254,3 +366,89 @@ class AnthropicCVAnalyze(Resource):
         except Exception as e:
             app.logger.error(f"Unexpected Error: {str(e)}")
             raise CustomError(500, "An unexpected error occurred.")
+
+
+
+
+
+# tool_use = next(block for block in response.content if block.type == "tool_use")
+#                 tool_name = tool_use.name
+#                 tool_input = tool_use.input
+
+#                 print(f"\nTool Used: {tool_name}")
+#                 print(f"Tool Input: {tool_input}")
+#                 messages.append({
+#                     'role': "assistant",
+#                     'content': response.content
+#                 })
+#                 print('HERE I AM MY FRiENDS')
+#                 info = get_ticker_info(tool_input.get('ticker'))
+#                 # print('HISTORY', hist)
+#                 print('HERE I AM MY FRiENDS 2')
+#                 messages.append({
+#                     'role': 'user',
+#                     'content': [{
+#                         'type': 'tool_result',
+#                         'tool_use_id': tool_use.id,
+#                         'content': info
+#                     }]
+#                 })
+#                 print('HERE I AM MY FRiENDS 3', messages)
+#                 response = client.beta.tools.messages.create(
+#                     model=model,
+#                     max_tokens=max_tokens,
+#                     # system=system,
+#                     messages=messages,
+#                     stream=False,
+#                     tools=[
+#                     tool_def()
+#                 ])
+#                 print('HERE I AM MY FRiENDS 4', response.stop_reason)
+#                 # if (message.stop_reason != 'tool_use'):
+#                 #     response = message
+#                 #     break
+
+
+
+
+# if (response.stop_reason == "tool_use"): 
+#                 # True:
+         
+#                 print(response)
+#                 tool_use_blocks = [block for block in response.content if block.type == "tool_use"]
+#                 print('SIZE', tool_use_blocks)
+#                 content = []
+#                 for block in tool_use_blocks:
+#                     tool_name = block.name
+#                     tool_input = block.input
+#                     print(f"\nTool Used: {tool_name}")
+#                     print(f"Tool Input: {tool_input}")
+
+#                     print('HERE I AM MY FRiENDS')
+#                     info = get_ticker_info(tool_input.get('ticker'))
+#                     # print('HISTORY', hist)
+#                     print('HERE I AM MY FRiENDS 2')
+#                     content.append({
+#                             'type': 'tool_result',
+#                             'tool_use_id': block.id,
+#                             'content': info
+#                         })
+#                 print('CONTENT', content)
+#                 messages.append({
+#                         'role': 'user',
+#                         'content': content
+#                     })
+#                 print('HERE I AM MY FRiENDS 3', messages)
+#                 response = client.beta.tools.messages.create(
+#                     model=model,
+#                     max_tokens=max_tokens,
+#                     # system=system,
+#                     messages=messages,
+#                     stream=False,
+#                     tools=[
+#                     tool_def()
+#                 ])
+#                 print('HERE I AM MY FRiENDS 4', response.stop_reason)
+#                 # if (message.stop_reason != 'tool_use'):
+#                 #     response = message
+#                 #     break
