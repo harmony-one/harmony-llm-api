@@ -8,3 +8,4 @@ db = SQLAlchemy(model_class=Base)
 
 from .collection_error_model import CollectionError
 from .tools_beta_message import  ToolsBetaMessage
+from .stock_info import StockInfo
