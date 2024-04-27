@@ -1,9 +1,11 @@
+import threading
+from uuid import uuid4
 from flask import request, jsonify, Response, make_response, abort, current_app as app
 from flask_restx import Namespace, Resource
 import anthropic
 import json
 import os
-from .anthropic_helper import anthropicHelper
+from .anthropic_helper import anthropicHelper as helper
 from models import ToolsBetaMessage
 from res import EngMsg as msg, CustomError
 from config import config
@@ -13,8 +15,6 @@ from werkzeug.utils import secure_filename
 from werkzeug.datastructures import FileStorage
 
 api = Namespace('anthropic', description=msg.API_NAMESPACE_ANTHROPIC_DESCRIPTION)
-
-helper = anthropicHelper
 
 client = anthropic.Anthropic(
     # defaults to os.environ.get("ANTHROPIC_API_KEY")
@@ -50,14 +50,15 @@ def data_generator(response):
 
 def extract_tool_response_data(message):
 
-    betaMessage = ToolsBetaMessage(id=message.id,
-                                    content=message.content,
-                                    model=message.model,
-                                    role=message.role,
-                                    stop_reason=message.stop_reason,
-                                    stop_sequence=message.stop_sequence,
-                                    type= message.type,
-                                    usage=message.usage)
+    betaMessage = ToolsBetaMessage(
+        id=message.id,
+        content=message.content,
+        model=message.model,
+        role=message.role,
+        stop_reason=message.stop_reason,
+        stop_sequence=message.stop_sequence,
+        type= message.type,
+        usage=message.usage)
     
     return json.dumps(betaMessage.to_dict())
 
@@ -124,15 +125,16 @@ class AnthropicCompletionRes(Resource):
         return responseJson, 200
 
 @api.route('/completions/tools')
-class AnthropicCompletionRes(Resource):
+class AnthropicCompletionToolRes(Resource):
 
     runningTools = []
-    tools = helper.getClaudeToolsDefinition()
+    tools = helper.get_claude_tools_definition()
 
     def post(self):
         """
-        Endpoint to handle Anthropic request.
-        Receives a message from the user, processes it, and returns a response from the model.
+        Endpoint to handle Anthropic requests with Tools.
+        Receives a message from the user and creates a tool handler.
+        Returns a tool execution ID
         """
         app.logger.info('handling anthropic request')
         data = request.json
@@ -140,14 +142,43 @@ class AnthropicCompletionRes(Resource):
             if data.get('stream') == "True":
                 data['stream'] = True  # Convert stream to boolean
             
+            tool_execution_id = uuid4().hex
+            print(tool_execution_id)
+            helper.add_running_tool(tool_execution_id)
+            thread = threading.Thread(target=self.__tool_request_handler, args=(data, tool_execution_id, app.app_context()))
+            thread.start()
+            return make_response(jsonify({"id": f"{tool_execution_id}"}), 200)
+            
+        except anthropic.AnthropicError as e:
+            print('ERROR', e)
+            error_code = e.status_code
+            error_json = json.loads(e.response.text)
+            error_message = error_json["error"]["message"]
+            raise CustomError(error_code, error_message)
+        except Exception as e:
+            app.logger.error(f"Ucnexpected Error: {str(e)}")
+            raise CustomError(500, "An unexpected error occurred.")
+        
+    def __tool_request_handler(self, data, tool_execution_id, context):
+        context.push()
+        try: 
             messages = data.get('messages')
             model = data.get('model')
             system = data.get('system')
             max_tokens = data.get('max_tokens')
-            response = client.beta.tools.messages.create(**data, tools=self.tools)
+            print('PREVIOUS MESSAGE******')
+            print(messages)
+            print('******')
+            response = client.beta.tools.messages.create(
+                    model=model,
+                    max_tokens=max_tokens,
+                    system=system,
+                    messages=messages,
+                    stream=False,
+                    tools=self.tools)
             messages.append({
                 'role': "assistant",
-                'content': response.content
+                'content': str(response.content)
             })
             while (response.stop_reason == "tool_use"): 
                 # True:
@@ -162,7 +193,7 @@ class AnthropicCompletionRes(Resource):
                         print(f"\nTool Used: {tool_name}")
                         print(f"Tool Input: {tool_input}")
 
-                        tool = helper.excecuteTool(tool_name)
+                        tool = helper.excecute_tool(tool_name)
                         if (tool):
                             info = tool.run(tool_input)
                         else:
@@ -170,7 +201,7 @@ class AnthropicCompletionRes(Resource):
                         content.append({
                                 'type': 'tool_result',
                                 'tool_use_id': block.id,
-                                'content': str(info)
+                                'content': "the Current Price is 169.3" # info
                             })
 
                     messages.append({
@@ -185,21 +216,26 @@ class AnthropicCompletionRes(Resource):
                     print(f"\nTool Used: {tool_name}")
                     print(f"Tool Input: {tool_input}")
 
-                    tool = helper.excecuteTool(tool_name)
+                    tool = helper.excecute_tool(tool_name)
                     if (tool):
                         info = tool.run(tool_input)
                     else:
                         info = "no data available"
-                    
+                    print('TTOOOOLL********')
+                    print(info)
+                    print('******')
                     messages.append({
                             'role': 'user',
                             'content': {
                                 'type': 'tool_result',
                                 'tool_use_id': block.id,
-                                'content': str(info)
+                                'content': "the Current Price is 169.3" # info
                             }
                         })
                 
+                print('FCO FCO 3 *****')
+                print(messages)
+                print('******')
                 response = client.beta.tools.messages.create(
                     model=model,
                     max_tokens=max_tokens,
@@ -207,14 +243,19 @@ class AnthropicCompletionRes(Resource):
                     messages=messages,
                     stream=False,
                     tools=self.tools)
-            
-            print('RESULT ***', response)
-            
-            if data.get('stream'):
-                return Response(data_generator(response), mimetype='text/event-stream')
 
-            responseJson = extract_tool_response_data(response)
-
+            betaMessage = ToolsBetaMessage(
+                id=response.id,
+                content=response.content,
+                model=response.model,
+                role=response.role,
+                stop_reason=response.stop_reason,
+                stop_sequence=response.stop_sequence,
+                type= response.type,
+                usage=response.usage)
+            
+            helper.add_running_tool_result(tool_execution_id, betaMessage)
+        
         except anthropic.AnthropicError as e:
             print('ERROR', e)
             error_code = e.status_code
@@ -222,10 +263,39 @@ class AnthropicCompletionRes(Resource):
             error_message = error_json["error"]["message"]
             raise CustomError(error_code, error_message)
         except Exception as e:
+            context.push()
             app.logger.error(f"Ucnexpected Error: {str(e)}")
             raise CustomError(500, "An unexpected error occurred.")
         
-        return responseJson, 200
+            
+            
+@api.route('/completions/tools/<tool_execution_id>')
+class CheckToolExecution(Resource):            
+
+    @api.doc(params={"tool_execution_id": msg.API_DOC_PARAMS_COLLECTION_NAME})        
+    def get(self, tool_execution_id):
+        if (tool_execution_id):
+            tool = helper.get_running_tool(tool_execution_id)
+            print('TOOL', tool)
+            if(not tool):
+                response = {
+                    "status": 'DONE',
+                    "error": 'INVALID_TOOL_EXECUTION'
+                }
+                return make_response(jsonify(response), 200)
+            else:
+                result = tool.get_result()
+                print('RESULT', result)
+                if (not result):
+                    response = {
+                        "status": 'PROCESSING',
+                        "error": None
+                    }
+                    return make_response(jsonify(response), 200)
+                else:
+                    response = result.to_dict()
+                    return response, 200
+
     
 @api.route('/pdf/inquiry')
 class AnthropicPDFSummary(Resource):
