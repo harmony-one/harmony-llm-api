@@ -23,6 +23,7 @@ class Usage:
         }
 
 class ToolsBetaMessage:
+
     def __init__(self, id: str, content: List[TextBlock], model: str, role: str, stop_reason: str, stop_sequence: Any, type: str, usage: Usage):
         self.id = id
         self.content = content
@@ -44,3 +45,15 @@ class ToolsBetaMessage:
             'type': self.type,
             'usage': self.usage.to_dict()
         }
+
+class RunningTool:
+
+    def __init__(self, id: str):
+        self.id = id
+        self.result = None
+    
+    def add_result(self, message: ToolsBetaMessage):
+        self.result = message
+
+    def get_result(self):
+        return self.result

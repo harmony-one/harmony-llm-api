@@ -1,3 +1,4 @@
+import json
 import yfinance as yf
 from typing import Any, Dict, List
 
@@ -32,7 +33,7 @@ class YahooFinanceTool(ToolBase):
             stock = yf.Ticker(ticker)
             info = stock.info
             stock = StockInfo(info)
-            return stock.to_dict()
+            return json.dumps(stock.to_dict())
 
         except Exception as e:
             print(f"An error occurred: {e}")
