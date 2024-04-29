@@ -1,4 +1,5 @@
 import threading
+from anthropic.types.beta.tools import ToolParam, ToolsBetaMessageParam
 from uuid import uuid4
 from flask import request, jsonify, Response, make_response, abort, current_app as app
 from flask_restx import Namespace, Resource
@@ -143,7 +144,6 @@ class AnthropicCompletionToolRes(Resource):
                 data['stream'] = True  # Convert stream to boolean
             
             tool_execution_id = uuid4().hex
-            print(tool_execution_id)
             helper.add_running_tool(tool_execution_id)
             thread = threading.Thread(target=self.__tool_request_handler, args=(data, tool_execution_id, app.app_context()))
             thread.start()
@@ -161,33 +161,50 @@ class AnthropicCompletionToolRes(Resource):
         
     def __tool_request_handler(self, data, tool_execution_id, context):
         context.push()
-        try: 
-            messages = data.get('messages')
+        try:
             model = data.get('model')
             system = data.get('system')
             max_tokens = data.get('max_tokens')
-            print('PREVIOUS MESSAGE******')
-            print(messages)
-            print('******')
+            messages = data.get('messages')
             response = client.beta.tools.messages.create(
-                    model=model,
-                    max_tokens=max_tokens,
-                    system=system,
-                    messages=messages,
-                    stream=False,
-                    tools=self.tools)
-            messages.append({
-                'role': "assistant",
-                'content': str(response.content)
-            })
-            while (response.stop_reason == "tool_use"): 
-                # True:
-                tool_use_blocks = [block for block in response.content if block.type == "tool_use"]
-                print('Tool use blocks size', len(tool_use_blocks))
-                
-                if (len(tool_use_blocks) > 1):
-                    content = []
-                    for block in tool_use_blocks:
+                model=model,
+                max_tokens=1024,
+                messages=messages,
+                tools=self.tools,
+            )
+            
+            if (response.stop_reason == "tool_use"):
+                while (response.stop_reason == "tool_use"): 
+                    messages.append({"role": response.role, "content": response.content})
+                    tool_use_blocks = [block for block in response.content if block.type == "tool_use"]
+                    print('Tool use blocks size', len(tool_use_blocks))
+                    
+                    if (len(tool_use_blocks) > 1):
+                        content = []
+                        for block in tool_use_blocks:
+                            tool_name = block.name
+                            tool_input = block.input
+                            print(f"\nTool Used: {tool_name}")
+                            print(f"Tool Input: {tool_input}")
+
+                            tool = helper.excecute_tool(tool_name)
+                            if (tool):
+                                info = tool.run(tool_input)
+                            else:
+                                info = "no data available"
+                            content.append({
+                                    'type': 'tool_result',
+                                    'tool_use_id': block.id,
+                                    'content': [{'type': 'text','text': str(info)}] # info
+                                })
+
+                        messages.append({
+                                'role': 'user',
+                                'content': content
+                            })
+                    
+                    else: 
+                        block = tool_use_blocks[0]
                         tool_name = block.name
                         tool_input = block.input
                         print(f"\nTool Used: {tool_name}")
@@ -198,52 +215,26 @@ class AnthropicCompletionToolRes(Resource):
                             info = tool.run(tool_input)
                         else:
                             info = "no data available"
-                        content.append({
-                                'type': 'tool_result',
-                                'tool_use_id': block.id,
-                                'content': "the Current Price is 169.3" # info
+                        messages.append({
+                                'role': 'user',
+                                'content': [
+                                    {
+                                        'type': 'tool_result',
+                                        'tool_use_id': block.id,
+                                        'content': [{'type': 'text','text': str(info)}] # info
+                                    }
+                                ]
                             })
-
-                    messages.append({
-                            'role': 'user',
-                            'content': content
-                        })
-                
-                else: 
-                    block = tool_use_blocks[0]
-                    tool_name = block.name
-                    tool_input = block.input
-                    print(f"\nTool Used: {tool_name}")
-                    print(f"Tool Input: {tool_input}")
-
-                    tool = helper.excecute_tool(tool_name)
-                    if (tool):
-                        info = tool.run(tool_input)
-                    else:
-                        info = "no data available"
-                    print('TTOOOOLL********')
-                    print(info)
-                    print('******')
-                    messages.append({
-                            'role': 'user',
-                            'content': {
-                                'type': 'tool_result',
-                                'tool_use_id': block.id,
-                                'content': "the Current Price is 169.3" # info
-                            }
-                        })
-                
-                print('FCO FCO 3 *****')
-                print(messages)
-                print('******')
-                response = client.beta.tools.messages.create(
-                    model=model,
-                    max_tokens=max_tokens,
-                    system=system,
-                    messages=messages,
-                    stream=False,
-                    tools=self.tools)
-
+                    response = client.beta.tools.messages.create(
+                        model=model,
+                        max_tokens=max_tokens,
+                        system=system,
+                        messages=messages,
+                        stream=False,
+                        tools=self.tools)
+            else:
+                messages.append({"role": response.role, "content": response.content})
+            
             betaMessage = ToolsBetaMessage(
                 id=response.id,
                 content=response.content,
@@ -276,25 +267,29 @@ class CheckToolExecution(Resource):
     def get(self, tool_execution_id):
         if (tool_execution_id):
             tool = helper.get_running_tool(tool_execution_id)
-            print('TOOL', tool)
             if(not tool):
                 response = {
                     "status": 'DONE',
                     "error": 'INVALID_TOOL_EXECUTION'
                 }
-                return make_response(jsonify(response), 200)
             else:
                 result = tool.get_result()
-                print('RESULT', result)
                 if (not result):
                     response = {
                         "status": 'PROCESSING',
                         "error": None
                     }
-                    return make_response(jsonify(response), 200)
                 else:
-                    response = result.to_dict()
-                    return response, 200
+                    response = {
+                        "status": 'DONE',
+                        "data": result.to_dict()
+                    }
+        else:
+            response = {
+                "status": "DONE",
+                "error": "INVALID_TOOL_ID"
+            }
+        return make_response(jsonify(response), 200)
 
     
 @api.route('/pdf/inquiry')
@@ -443,3 +438,4 @@ class AnthropicCVAnalyze(Resource):
         except Exception as e:
             app.logger.error(f"Unexpected Error: {str(e)}")
             raise CustomError(500, "An unexpected error occurred.")
+

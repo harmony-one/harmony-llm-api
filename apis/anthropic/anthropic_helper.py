@@ -28,7 +28,7 @@ class AnthropicHelper:
         tool = RunningTool(id)
         self.running_tools.append(tool)
     
-    def add_running_tool_result(self, result: ToolsBetaMessage):
+    def add_running_tool_result(self, id: str, result: ToolsBetaMessage):
         for tool in self.running_tools:
             if (tool.id == id):
                 tool.add_result(result)
