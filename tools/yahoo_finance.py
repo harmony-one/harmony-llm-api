@@ -8,8 +8,11 @@ from .tool_base import ToolBase
 
 class YahooFinanceTool(ToolBase):
     
-    def __init__(self, name, description):
-        super(YahooFinanceTool, self).__init__(name=name, description=description)
+    def __init__(self):
+        super(YahooFinanceTool, self).__init__(
+            name='get_ticker_info',
+            description="Get the financial information of a ticker symbol"
+        )
     
     def claude_tool_definition(self) -> Dict[str, Any]:
        return {

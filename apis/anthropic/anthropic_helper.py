@@ -1,11 +1,12 @@
-from tools import ToolBase, YahooFinanceTool
+from typing import Any, Dict, List
+from tools import ToolBase, ToolBoxBase, YahooFinanceTool, coin_gecko_tool_box
 from models import RunningTool, ToolsBetaMessage
 
 class AnthropicHelper:
     running_tools = []
     tools = []
 
-    def add_tool(self, tool: ToolBase):
+    def add_tool(self, tool: ToolBase | ToolBoxBase):
         self.tools.append(tool)
     
     def get_tools(self):
@@ -14,14 +15,18 @@ class AnthropicHelper:
     def get_claude_tools_definition(self):
         definition = []
         for tool in self.tools:
-            definition.append(tool.claude_tool_definition())
+            if isinstance(tool, ToolBoxBase):
+                definition.extend(tool.claude_tool_definition())
+            else:
+                definition.append(tool.claude_tool_definition())
         
         return definition
 
     def excecute_tool(self, tool_name):
         for tool in self.tools:
-          if tool.is_supported(tool_name):
-              return tool
+          t = tool.is_supported(tool_name)
+          if t:
+              return t
         return None
     
     def add_running_tool(self, id: str): 
@@ -38,13 +43,16 @@ class AnthropicHelper:
             if (tool.id == id):
                 return tool
         return None
+    
+    def delete_running_tool(self, id: str):
+        self.running_tools = [elem for elem in self.running_tools if elem.id != id]
 
 
 anthropicHelper = AnthropicHelper()
 
-yft = YahooFinanceTool(
-    name='get_ticker_info',
-    description="Get the financial information of a ticker symbol"
-)
+yft = YahooFinanceTool()
 
 anthropicHelper.add_tool(yft)
+anthropicHelper.add_tool(coin_gecko_tool_box)
+
+print(anthropicHelper.get_claude_tools_definition())

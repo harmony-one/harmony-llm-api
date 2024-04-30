@@ -280,6 +280,7 @@ class CheckToolExecution(Resource):
                         "error": None
                     }
                 else:
+                    helper.delete_running_tool(tool_execution_id)
                     response = {
                         "status": 'DONE',
                         "data": result.to_dict()
