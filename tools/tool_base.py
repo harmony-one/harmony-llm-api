@@ -16,5 +16,8 @@ class ToolBase(ABC):
         pass
     
     def is_supported(self, name):
-       return self.name == name
+       if (self.name == name):
+           return self
+       return None
+    #    eturn self.name == name
 
