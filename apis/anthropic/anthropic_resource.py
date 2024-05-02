@@ -7,7 +7,7 @@ import anthropic
 import json
 import os
 from .anthropic_helper import anthropicHelper as helper
-from models import ToolsBetaMessage
+from app_types import ToolsBetaMessage
 from res import EngMsg as msg, CustomError
 from config import config
 from pdfminer.high_level import extract_text
@@ -34,7 +34,6 @@ def custom_serializer(obj):
     if obj.type != 'message_start':
         return obj.__dict__
     return obj
-
 
 def data_generator(response):
     for event in response:
@@ -95,13 +94,14 @@ def create_message(text):
 
 @api.route('/completions')
 class AnthropicCompletionRes(Resource):
-
+    
     def post(self):
         """
         Endpoint to handle Anthropic request.
         Receives a message from the user, processes it, and returns a response from the model.
         """
         app.logger.info('handling anthropic request')
+        print(request.headers)
         data = request.json
         try:
             if data.get('stream') == "True":
@@ -234,7 +234,7 @@ class AnthropicCompletionToolRes(Resource):
                         tools=self.tools)
             else:
                 messages.append({"role": response.role, "content": response.content})
-            
+
             betaMessage = ToolsBetaMessage(
                 id=response.id,
                 content=response.content,
@@ -257,8 +257,6 @@ class AnthropicCompletionToolRes(Resource):
             context.push()
             app.logger.error(f"Ucnexpected Error: {str(e)}")
             raise CustomError(500, "An unexpected error occurred.")
-        
-            
             
 @api.route('/completions/tools/<tool_execution_id>')
 class CheckToolExecution(Resource):            

@@ -2,7 +2,7 @@ import json
 import yfinance as yf
 from typing import Any, Dict, List
 
-from models import StockInfo
+from app_types import StockInfo
 
 from .tool_base import ToolBase
 

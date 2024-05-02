@@ -1,6 +1,6 @@
 from typing import Any, Dict, List
 from tools import ToolBase, ToolBoxBase, YahooFinanceTool, coin_gecko_tool_box
-from models import RunningTool, ToolsBetaMessage
+from app_types import RunningTool, ToolsBetaMessage
 
 class AnthropicHelper:
     running_tools = []
@@ -54,5 +54,3 @@ yft = YahooFinanceTool()
 
 anthropicHelper.add_tool(yft)
 anthropicHelper.add_tool(coin_gecko_tool_box)
-
-print(anthropicHelper.get_claude_tools_definition())
