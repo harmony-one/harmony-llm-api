@@ -6,6 +6,7 @@ import google.generativeai as genai
 from google.generativeai.types import content_types
 from google.oauth2 import service_account
 import google.cloud.aiplatform as aiplatform
+
 # from litellm import litellm
 import openai
 import vertexai

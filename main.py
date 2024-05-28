@@ -64,7 +64,7 @@ logging.info(f'****** APP Enviroment={app_config.config.ENV} *******')
 @app.before_request
 @auth.login_required
 def can_activate():
-    logging.debug('cheking api key')
+    logging.debug('checking api key')
 
 @app.route('/')
 def index():
