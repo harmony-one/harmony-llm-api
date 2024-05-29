@@ -1,4 +1,5 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
+from flask_httpauth import HTTPTokenAuth
 from flask_session import Session
 from flask_cors import CORS
 from apis import api
@@ -8,7 +9,14 @@ import config as app_config
 import os
 import logging
 
+API_KEYS = app_config.config.API_KEYS
 app = Flask(__name__)
+auth = HTTPTokenAuth(scheme='Bearer')
+    
+# my_key_manager.fetch_api_key_loader(lambda: API_KEYS)
+# print(my_key_manager.fetch_api_key_loader( .create_api_key_loader())
+
+#  .init_app() . fetch_api_key_loader()
 
 app.config['SECRET_KEY']=app_config.config.SECRET_KEY
 app.config['SESSION_PERMANENT'] = True
@@ -31,12 +39,33 @@ api.init_app(app)
 sess.init_app(app)
 db.init_app(app)
 
+
+@auth.verify_token
+def verify_token(token):
+    token = request.headers.get('Authorization')
+    if token:
+        token = token.split(' ')[1]
+    
+    # for web client calls that uses HttpOnly cookies
+    if not token:
+        token = request.cookies.get('session_token')
+
+    if token and token in API_KEYS:
+        return True
+
+    return False
+
 app.app_context().push()
-# with app.app_context():
 db.create_all()
 
 CORS(app)
 logging.info(f'****** APP Enviroment={app_config.config.ENV} *******')
+
+@app.before_request
+@auth.login_required
+def can_activate():
+    logging.debug('checking api key')
+
 @app.route('/')
 def index():
     return 'received!', 200
@@ -44,6 +73,7 @@ def index():
 @app.route('/health')
 def health():
     return "I'm healthy", 200
+
 @app.errorhandler(CustomError)
 def handle_custom_error(error):
     response = {

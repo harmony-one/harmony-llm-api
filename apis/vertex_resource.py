@@ -6,6 +6,7 @@ import google.generativeai as genai
 from google.generativeai.types import content_types
 from google.oauth2 import service_account
 import google.cloud.aiplatform as aiplatform
+
 # from litellm import litellm
 import openai
 import vertexai
@@ -69,7 +70,6 @@ class VertexCompletionRes(Resource):
             if data.get('stream') == "True":
                 data['stream'] = True  # convert to boolean
             # pass in data to completion function, unpack data
-
             chat_model = ChatModel.from_pretrained("chat-bison@001")
             parameters = {
                 "max_output_tokens": 800,
@@ -124,7 +124,22 @@ class VertexGeminiCompletionRes(Resource):
                 "top_p": 1.0,
                 "top_k": 40,
             }
-            messages = data.get('messages')
+            if all(
+                isinstance(m, dict) and
+                set(m.keys()) == {"parts", "role"} and
+                isinstance(m["parts"], dict) and
+                set(m["parts"].keys()) == {"text"} and
+                m["role"] in ["model", "user"]
+                for m in data.get('messages')
+            ):
+                # If the structure is the same, no mapping is necessary
+                messages = data.get('messages')
+            else:
+                # If the structure is different, perform the mapping
+                messages = [
+                    {"parts": {"text": m["content"]}, "role": "model" if m["role"] != "user" else "user"}
+                    for m in data.get('messages')
+                ]
             history = []
             for item in messages:
                 if isinstance(item, dict) and 'parts' in item and isinstance(item['parts'], dict) and 'text' in item['parts']:
