@@ -36,17 +36,18 @@ def custom_serializer(obj):
     return obj
 
 def data_generator(response):
+    # input_token = 0
+    # output_token = 0
     for event in response:
         if event.type == 'message_start':
             input_token = event.message.usage.input_tokens
-            yield f"Input Token: {input_token}"
         elif event.type == 'content_block_delta':
             text = event.delta.text
             yield f"{text}"
         elif event.type == 'message_delta':
             output_tokens = event.usage.output_tokens
-            yield f"Output Tokens: {output_tokens}"
-
+    yield f"Input Token: {input_token}"
+    yield f"Output Tokens: {output_tokens}"
 
 def extract_tool_response_data(message):
 
@@ -101,12 +102,13 @@ class AnthropicCompletionRes(Resource):
         Receives a message from the user, processes it, and returns a response from the model.
         """
         app.logger.info('handling anthropic request')
-        print(request.headers)
         data = request.json
         try:
             if data.get('stream') == "True":
                 data['stream'] = True  # Convert stream to boolean
 
+            messages = [{"content": m["content"], "role": m["role"]} for m in data.get('messages')]
+            data['messages'] = messages
             response = client.messages.create(**data)
             if data.get('stream'):
                 return Response(data_generator(response), mimetype='text/event-stream')
@@ -118,6 +120,7 @@ class AnthropicCompletionRes(Resource):
             error_code = e.status_code
             error_json = json.loads(e.response.text)
             error_message = error_json["error"]["message"]
+            app.logger.error(f"Unexpected Error: ({error_code}) {error_message}")
             raise CustomError(error_code, error_message)
         except Exception as e:
             app.logger.error(f"Unexpected Error: {str(e)}")
@@ -150,10 +153,10 @@ class AnthropicCompletionToolRes(Resource):
             return make_response(jsonify({"id": f"{tool_execution_id}"}), 200)
             
         except anthropic.AnthropicError as e:
-            print('ERROR', e)
             error_code = e.status_code
             error_json = json.loads(e.response.text)
             error_message = error_json["error"]["message"]
+            app.logger.error(f"Unexpected Error: ({error_code}) {error_message}")
             raise CustomError(error_code, error_message)
         except Exception as e:
             app.logger.error(f"Ucnexpected Error: {str(e)}")
@@ -248,10 +251,10 @@ class AnthropicCompletionToolRes(Resource):
             helper.add_running_tool_result(tool_execution_id, betaMessage)
         
         except anthropic.AnthropicError as e:
-            print('ERROR', e)
             error_code = e.status_code
             error_json = json.loads(e.response.text)
             error_message = error_json["error"]["message"]
+            app.logger.error(f"Unexpected Error: ({error_code}) {error_message}")
             raise CustomError(error_code, error_message)
         except Exception as e:
             context.push()
@@ -338,6 +341,7 @@ class AnthropicPDFSummary(Resource):
             error_code = e.status_code
             error_json = json.loads(e.response.text)
             error_message = error_json["error"]["message"]
+            app.logger.error(f"Unexpected Error: ({error_code}) {error_message}")
             raise CustomError(error_code, error_message)
         except Exception as e:
             app.logger.error(f"Unexpected Error: {str(e)}")
@@ -433,6 +437,7 @@ class AnthropicCVAnalyze(Resource):
                     error_code = e.status_code
                     error_json = json.loads(e.response.text)
                     error_message = error_json["error"]["message"]
+                    app.logger.error(f"Unexpected Error: ({error_code}) {error_message}")
                     raise CustomError(error_code, error_message)
         except Exception as e:
             app.logger.error(f"Unexpected Error: {str(e)}")
