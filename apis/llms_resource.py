@@ -1,5 +1,6 @@
 from flask import request, jsonify, Response, make_response, current_app as app
-from apis import AnthropicCompletionRes, VertexGeminiCompletionRes
+from .vertex_resource import VertexGeminiCompletionRes
+from .anthropic import AnthropicCompletionRes
 from flask_restx import Namespace, Resource
 from litellm import completion
 from openai.error import OpenAIError
@@ -21,7 +22,7 @@ class LlmsCompletionJ2Res(Resource):
         Endpoint to handle LLMs request.
         Receives a message from the user, processes it, and returns a response from the model.
         """ 
-        app.logger.info('handling llm request')
+        app.logger.info('handling j2 request')
         data = request.json
         try:
             if data.get('stream') == "True":
@@ -48,14 +49,16 @@ class LlmsCompletionJ2Res(Resource):
 class LlmsCompletionRes(Resource):
     
     def post(self):
+        """
+        Main Endpoint to handle Vertex and Anthropic request.
+        Receives a message from the user, checks the model and redirects the request to the respective handler.
+        """ 
         data = request.json
         model = data.get('model')
-        print(model)
+
         if model.startswith('claude'):
-            # Route to the Claude endpoint
             return AnthropicCompletionRes().post()
         elif model.startswith('gemini'):
-            # Route to the Gemini endpoint
             return VertexGeminiCompletionRes().post()
         else:
             # Handle unsupported models
