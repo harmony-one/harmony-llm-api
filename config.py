@@ -14,4 +14,6 @@ class Config(object):
     OPENAI_MAX_TOKENS = os.getenv('OPENAI_MAX_TOKENS') if os.getenv('OPENAI_MAX_TOKENS') else 600
     WEB_CRAWLER_HTTP = os.environ.get('WEB_CRAWLER_HTTP')
     ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
+    API_KEYS = os.environ.get("API_KEYS").split(',') if os.environ.get("API_KEYS") else []
+
 config = Config()
