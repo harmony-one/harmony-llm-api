@@ -47,12 +47,23 @@ def basic_data_generator(response):
 
 def data_generator(response, input_token_count, model: GenerativeModel):
     completion = ""
-    for event in response:
-        completion += event.text + " "
-        yield f"{event.text}"
-    completionTokens = model.count_tokens(completion)
-    yield f"Input Token: {input_token_count}"
-    yield f"Output Tokens: {completionTokens.total_tokens}"
+    for chunk in response:
+        if chunk is not None:
+            try:
+                # Check if 'content' and 'parts' exist
+                if hasattr(chunk, 'text'):
+                    completion += chunk.text + " "
+                    yield f"{chunk.text}"
+            except ValueError as e:
+                continue
+            except Exception as e:
+                continue
+    try:
+        completionTokens = model.count_tokens(completion)
+        yield f"Input Token: {input_token_count}"
+        yield f"Output Tokens: {completionTokens.total_tokens}"
+    except Exception as e:
+        pass 
 
 @api.route('/completions')
 class VertexCompletionRes(Resource):
