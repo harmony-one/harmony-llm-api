@@ -90,41 +90,63 @@ class AddDocument(Resource):
 @api.route('/document/<collection_name>')
 class CheckDocument(Resource):
 
-    @api.doc(params={"collection_name": msg.API_DOC_PARAMS_COLLECTION_NAME})
+    @api.doc(params={
+        "collection_name": msg.API_DOC_PARAMS_COLLECTION_NAME,
+        "create_collection": msg.API_DOC_PARAMS_CREATE_IF_NOT_EXISTS
+    })
     def get(self, collection_name):
         """
         Endpoint that checks collection creation status.
         If collection exists, returns indexing price
         """
         try:
+            create_if_not_exists = request.args.get('create_collection', 'true').lower() == 'true'
             current_app.logger.info('Checking collection status')
-            if (collection_name): 
-                collection_error = CollectionError.query.filter_by(collection_name=collection_name).first()
-                if (collection_error):
+            if not collection_name:
+                return "Bad request, parameters missing", 400
+
+            if not create_if_not_exists:
+                try: 
+                    collection = collection_helper.check_collection(collection_name)
                     response = {
-                        "price": -1, # TBD
+                            "price": 0, # TBD
+                            "status": 'DONE',
+                            "error": collection
+                        }
+                    return make_response(jsonify(response), 200)
+                except Exception as ve:
+                    current_app.logger.error(ve)
+                    response = {
+                        "price": 0,
+                        "status": 'ERROR',
+                        "error": 'Collection does not exist'
+                    }
+                    return make_response(jsonify(response), 404)
+            collection_error = CollectionError.query.filter_by(collection_name=collection_name).first()
+            if (collection_error):
+                response = {
+                    "price": -1, # TBD
+                    "status": 'DONE',
+                    "error": 'INVALID_COLLECTION'
+                }
+            else:
+                collection = collection_helper.get_collection(collection_name)
+                if (collection):
+                    embeddings_number = collection.count()
+                    current_app.logger.info(f'******* Number of embeddings: {embeddings_number}')
+                    response = {
+                        "price": embeddings_number * 0.05, # TBD
                         "status": 'DONE',
-                        "error": 'INVALID_COLLECTION'
+                        "error": None
                     }
                 else:
-                    collection = collection_helper.get_collection(collection_name)
-                    if (collection):
-                        embeddings_number = collection.count()
-                        current_app.logger.info(f'******* Number of embeddings: {embeddings_number}')
-                        response = {
-                            "price": embeddings_number * 0.05, # TBD
-                            "status": 'DONE',
-                            "error": None
-                        }
-                    else:
-                        response = {
-                            "price": 0,
-                            "status": 'PROCESSING',
-                            "error": None
-                        }
-                return make_response(jsonify(response), 200)
-            else:
-                return "Bad request, parameters missing", 400
+                    response = {
+                        "price": 0,
+                        "status": 'PROCESSING',
+                        "error": None
+                    }
+            return make_response(jsonify(response), 200)
+ 
         except Exception as e:
             current_app.logger.error(e)
             error_message = str(e)

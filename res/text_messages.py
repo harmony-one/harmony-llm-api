@@ -12,6 +12,7 @@ pass applicant tracking systems and highlight expertise."""
     API_NAMESPACE_ANTHROPIC_DESCRIPTION = 'Claude APIs'
 
     API_DOC_PARAMS_COLLECTION_NAME = 'Collection Name'
+    API_DOC_PARAMS_CREATE_IF_NOT_EXISTS = "Whether to create the collection if it doesn't exist (default: true)"
     API_DOC_PARAMS_DATA = 'Audio file'
     API_DOC_PARAMS_PDF_ISOLATE = 'PDF file (required)'
     API_DOC_PARAMS_PDF = 'PDF file (required if no URL is provided)'
