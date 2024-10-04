@@ -1,4 +1,7 @@
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 def generate_new_secret_key():
     key = os.urandom(24).hex()
@@ -7,6 +10,7 @@ class Config(object):
     ENV=os.environ.get('ENV') if os.environ.get('ENV') else 'production'
     DEBUG = os.environ.get('DEBUG') if os.environ.get('DEBUG') else True
     TESTING = os.getenv('TESTING') if os.environ.get('DEBUG') else True
+    MAX_WORKERS = 10
     SECRET_KEY = generate_new_secret_key()
     CHROMADB_SERVER_URL = os.getenv('CHROMADB_SERVER_URL')
     CHROMA_SERVER_PATH = os.getenv('CHROMA_SERVER_PATH') if os.getenv('CHROMA_SERVER_PATH') else "/app/data/chroma"
@@ -15,5 +19,6 @@ class Config(object):
     WEB_CRAWLER_HTTP = os.environ.get('WEB_CRAWLER_HTTP')
     ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
     API_KEYS = os.environ.get("API_KEYS").split(',') if os.environ.get("API_KEYS") else []
-
+    LUMAAI_API_KEY = os.environ.get("LUMAAI_API_KEY")
+    TELEGRAM_API_KEY = os.environ.get('TELEGRAM_API_KEY')
 config = Config()
