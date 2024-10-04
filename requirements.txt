@@ -71,6 +71,7 @@ langchain==0.0.306
 langsmith==0.0.92
 litellm==0.1.793
 llama-index==0.8.39.post2
+lumaai==1.0.2
 markdown-it-py==3.0.0
 MarkupSafe==2.1.5
 marshmallow==3.21.1

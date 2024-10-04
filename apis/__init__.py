@@ -4,7 +4,7 @@ from .llms_resource import api as llms_namespace
 from .collections import api as collections_namespace
 from .openai_resource import api as openai_namespace
 from .anthropic import api as anthropic_namespace, AnthropicCompletionRes
-
+from .luma import api as lumaai_namespace
 
 
 api = Api(
@@ -18,3 +18,4 @@ api.add_namespace(llms_namespace)
 api.add_namespace(collections_namespace)
 api.add_namespace(openai_namespace)
 api.add_namespace(anthropic_namespace)
+api.add_namespace(lumaai_namespace)
