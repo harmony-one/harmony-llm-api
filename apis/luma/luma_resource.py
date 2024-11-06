@@ -5,6 +5,7 @@ from . import luna_client
 from .luma_helper import count_generation_in_progress, count_generation_states, get_queue_time, process_generation, LumaErrorHandler
 from res import EngMsg as msg, CustomError
 from config import config
+from services import telegram_report_error
 import concurrent.futures
 import lumaai
 
@@ -15,6 +16,7 @@ executor = concurrent.futures.ThreadPoolExecutor(max_workers=config.MAX_WORKERS)
 class Generation:
     def __init__(self, id):
         self.id = id
+
 
 @api.route('/generations')
 class LumaAiGenerationRes(Resource):
@@ -44,6 +46,7 @@ class LumaAiGenerationRes(Resource):
         except lumaai.APIError as e:
             status_code, error_detail = LumaErrorHandler.get_error_info(e)
             LumaErrorHandler.log_error(app.logger, e)
+            telegram_report_error("luma", chat_id, status_code, error_detail)
             raise CustomError(status_code, error_detail)
     
         except Exception as e:
@@ -63,7 +66,7 @@ class LumaAiGenerationListRes(Resource):
         return make_response(jsonify(generations), 200)
 
 
-@api.route('/generation/<generation_id>')
+@api.route('/generations/<generation_id>')
 class GenerationRes(Resource):
     
     @api.doc(params={"generation_id": msg.API_DOC_PARAMS_COLLECTION_NAME})
@@ -73,7 +76,7 @@ class GenerationRes(Resource):
         """
         try:
             if (generation_id):
-                luna_client.generations.delete(generation_id)
+                luna_client.generations.delete(id=generation_id)
                 return 'OK', 204
             else:
                 return "Bad request, parameters missing", 400
