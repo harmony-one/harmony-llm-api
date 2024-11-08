@@ -2,9 +2,11 @@ from flask import request, jsonify, make_response, current_app as app
 from flask_restx import Namespace, Resource
 from werkzeug.utils import secure_filename
 from openai.error import OpenAIError
+from res import EngMsg as msg, CustomError
 import openai
 import os
-from res import EngMsg as msg, CustomError
+
+from services import telegram_report_error
 
 api = Namespace('openai', description=msg.API_NAMESPACE_OPENAI_DESCRIPTION)
 
@@ -58,6 +60,7 @@ class UploadAudioFile(Resource):
         # Handle OpenAI API errors
         error_message = str(e)
         app.logger.error(f"OpenAI API Error: {error_message}")
+        telegram_report_error("openai", "NO_CHAT_ID", e.code, error_message)
         raise CustomError(500, error_message)
     except Exception as e:
         # Handle other unexpected errors

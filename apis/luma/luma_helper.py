@@ -7,6 +7,7 @@ import lumaai
 from config import config
 from . import luna_client
 import json
+from services import send_telegram_error_message
 
 def send_telegram_message_with_download_button(chat_id, text, generation_id):
     try:
@@ -56,19 +57,6 @@ def count_generation_in_progress(generation_list):
 
 def get_queue_time(in_progress_count):
     return in_progress_count * 45 # 45 secs per video
-
-def send_telegram_error_message(chat_id, error_text):
-    bot_token = config.TELEGRAM_API_KEY
-    base_url = f"https://api.telegram.org/bot{bot_token}/"
-    
-    params = {
-        "chat_id": chat_id,
-        "text": error_text
-    }
-    
-    response = requests.post(base_url + "sendMessage", json=params)
-    return response.json()
-
 
 def process_generation(prompt, generation_id, chat_id):
     try:
