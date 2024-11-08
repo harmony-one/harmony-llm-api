@@ -136,14 +136,16 @@ class VertexGeminiCompletionRes(Resource):
             if data.get('stream') == "True":
                 data['stream'] = True  # convert to boolean
             model = data.get('model')
+            system_instruction = data.get('system')
+            max_output_tokens = data.get('max_tokens')
+            generation_config = genai.GenerationConfig(
+                max_output_tokens=int(max_output_tokens),
+                temperature=0.1,
+                top_p= 1.0,
+                top_k= 40,
+            )
             app.logger.info(f'handling gemini request using {model}')
-            chat_model = genai.GenerativeModel(model)
-            parameters = {
-                "max_output_tokens": 800,
-                "temperature": 0.1,
-                "top_p": 1.0,
-                "top_k": 40,
-            }
+            chat_model = genai.GenerativeModel(model, system_instruction=system_instruction)
             if all(
                 isinstance(m, dict) and
                 set(m.keys()) == {"parts", "role"} and
@@ -172,7 +174,7 @@ class VertexGeminiCompletionRes(Resource):
                     print("Skipping item - Invalid format:", item)
             inputTokens = chat_model.count_tokens(history)
             if data['stream'] == True: # use generate_responses to stream responses
-                response = chat_model.generate_content(history, stream=True)
+                response = chat_model.generate_content(history, generation_config=generation_config, stream=True)
                 return Response(data_generator(response, inputTokens.total_tokens, chat_model), mimetype='text/event-stream')
             
             return make_response(jsonify(response), 200)
