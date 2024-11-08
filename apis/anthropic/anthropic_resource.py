@@ -117,11 +117,17 @@ class AnthropicCompletionRes(Resource):
             # response = client.messages.create(**data)
             responseJson = extract_response_data(response)
 
+        
+        except anthropic.APIError as e:
+            error_code = getattr(e, 'status_code', 500)
+            error_message = str(e)
+            app.logger.error(f"API Error: ({error_code}) {error_message}")
+            telegram_report_error("xai", "NO_CHAT_ID", error_code, error_message)
+            raise CustomError(error_code, error_message)
         except anthropic.AnthropicError as e:
-            error_code = e.status_code
-            error_json = json.loads(e.response.text)
-            error_message = error_json["error"]["message"]
-            app.logger.error(f"Unexpected Error: ({error_code}) {error_message}")
+            error_code = getattr(e, 'status_code', 500)
+            error_message = str(e)
+            app.logger.error(f"API Error: ({error_code}) {error_message}")
             telegram_report_error("anthropic", "NO_CHAT_ID", error_code, error_message)            
             raise CustomError(error_code, error_message)
         except Exception as e:
@@ -154,12 +160,18 @@ class AnthropicCompletionToolRes(Resource):
             thread.start()
             return make_response(jsonify({"id": f"{tool_execution_id}"}), 200)
             
+        
+        except anthropic.APIError as e:
+            error_code = getattr(e, 'status_code', 500)
+            error_message = str(e)
+            app.logger.error(f"API Error: ({error_code}) {error_message}")
+            telegram_report_error("xai", "NO_CHAT_ID", error_code, error_message)
+            raise CustomError(error_code, error_message)
         except anthropic.AnthropicError as e:
-            error_code = e.status_code
-            error_json = json.loads(e.response.text)
-            error_message = error_json["error"]["message"]
-            app.logger.error(f"Unexpected Error: ({error_code}) {error_message}")
-            telegram_report_error("anthropic", "NO_CHAT_ID", error_code, error_message)
+            error_code = getattr(e, 'status_code', 500)
+            error_message = str(e)
+            app.logger.error(f"API Error: ({error_code}) {error_message}")
+            telegram_report_error("anthropic", "NO_CHAT_ID", error_code, error_message)            
             raise CustomError(error_code, error_message)
         except Exception as e:
             app.logger.error(f"Ucnexpected Error: {str(e)}")
@@ -341,12 +353,17 @@ class AnthropicPDFSummary(Resource):
             else:
                 raise CustomError(400, "Bad request")
 
+        except anthropic.APIError as e:
+            error_code = getattr(e, 'status_code', 500)
+            error_message = str(e)
+            app.logger.error(f"API Error: ({error_code}) {error_message}")
+            telegram_report_error("xai", "NO_CHAT_ID", error_code, error_message)
+            raise CustomError(error_code, error_message)
         except anthropic.AnthropicError as e:
-            error_code = e.status_code
-            error_json = json.loads(e.response.text)
-            error_message = error_json["error"]["message"]
-            app.logger.error(f"Unexpected Error: ({error_code}) {error_message}")
-            telegram_report_error("anthropic", "NO_CHAT_ID", error_code, error_message)
+            error_code = getattr(e, 'status_code', 500)
+            error_message = str(e)
+            app.logger.error(f"API Error: ({error_code}) {error_message}")
+            telegram_report_error("anthropic", "NO_CHAT_ID", error_code, error_message)            
             raise CustomError(error_code, error_message)
         except Exception as e:
             app.logger.error(f"Unexpected Error: {str(e)}")
@@ -438,12 +455,17 @@ class AnthropicCVAnalyze(Resource):
                 return output.strip()
             else: 
                 raise CustomError(400, "Bad request")
+        except anthropic.APIError as e:
+            error_code = getattr(e, 'status_code', 500)
+            error_message = str(e)
+            app.logger.error(f"API Error: ({error_code}) {error_message}")
+            telegram_report_error("xai", "NO_CHAT_ID", error_code, error_message)
+            raise CustomError(error_code, error_message)
         except anthropic.AnthropicError as e:
-            error_code = e.status_code
-            error_json = json.loads(e.response.text)
-            error_message = error_json["error"]["message"]
-            app.logger.error(f"Unexpected Error: ({error_code}) {error_message}")
-            telegram_report_error("anthropic", "NO_CHAT_ID", error_code, error_message)
+            error_code = getattr(e, 'status_code', 500)
+            error_message = str(e)
+            app.logger.error(f"API Error: ({error_code}) {error_message}")
+            telegram_report_error("anthropic", "NO_CHAT_ID", error_code, error_message)            
             raise CustomError(error_code, error_message)
         except Exception as e:
             app.logger.error(f"Unexpected Error: {str(e)}")

@@ -10,6 +10,7 @@ pass applicant tracking systems and highlight expertise."""
     API_NAMESPACE_LLMS_DESCRIPTION = 'LLMs APIs'
     API_NAMESPACE_OPENAI_DESCRIPTION = 'OpenAI APIs'
     API_NAMESPACE_ANTHROPIC_DESCRIPTION = 'Claude APIs'
+    API_NAMESPACE_XAI_DESCRIPTION = 'xAI Apis'
 
     API_DOC_PARAMS_COLLECTION_NAME = 'Collection Name'
     API_DOC_PARAMS_DATA = 'Audio file'
