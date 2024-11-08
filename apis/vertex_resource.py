@@ -3,14 +3,19 @@ from flask_restx import Namespace, Resource
 from vertexai.language_models import ChatModel, ChatMessage
 from vertexai.preview.generative_models import GenerativeModel, Content, Part
 import google.generativeai as genai
+from google.cloud import aiplatform
 from google.generativeai.types import content_types
 from google.oauth2 import service_account
 import google.cloud.aiplatform as aiplatform
+from google.api_core.exceptions import GoogleAPICallError, ClientError
+from vertexai.generative_models import ResponseValidationError
+from services import telegram_report_error
 
 # from litellm import litellm
 import openai
 import vertexai
 import json
+
 
 from res import EngMsg as msg, CustomError
 
@@ -102,11 +107,15 @@ class VertexCompletionRes(Resource):
 
             # return f"{response}", 200 # non streaming responses
             return make_response(jsonify(response), 200)
-        except openai.error.OpenAIError as e:
-            # Handle OpenAI API errors
-            error_message = str(e)
-            app.logger.error(f"OpenAI API Error: {error_message}")
-            raise CustomError(500, error_message)
+        except ResponseValidationError as e:
+            telegram_report_error("vertex", "NO_CHAT_ID", "NO_CODE", str(e))
+            raise CustomError(e.code, e.message)
+        except GoogleAPICallError as e:
+            telegram_report_error("vertex", "NO_CHAT_ID", e.code, e.message)
+            raise CustomError(e.code, e.message)
+        except ClientError as e:
+            telegram_report_error("vertex", "NO_CHAT_ID", e.code, e.message)
+            raise CustomError(e.code, e.message)
         except Exception as e:
             # Handle other unexpected errors
             error_message = str(e)
@@ -127,14 +136,16 @@ class VertexGeminiCompletionRes(Resource):
             if data.get('stream') == "True":
                 data['stream'] = True  # convert to boolean
             model = data.get('model')
+            system_instruction = data.get('system')
+            max_output_tokens = data.get('max_tokens')
+            generation_config = genai.GenerationConfig(
+                max_output_tokens=int(max_output_tokens),
+                temperature=0.1,
+                top_p= 1.0,
+                top_k= 40,
+            )
             app.logger.info(f'handling gemini request using {model}')
-            chat_model = genai.GenerativeModel(model)
-            parameters = {
-                "max_output_tokens": 800,
-                "temperature": 0.1,
-                "top_p": 1.0,
-                "top_k": 40,
-            }
+            chat_model = genai.GenerativeModel(model, system_instruction=system_instruction)
             if all(
                 isinstance(m, dict) and
                 set(m.keys()) == {"parts", "role"} and
@@ -163,15 +174,19 @@ class VertexGeminiCompletionRes(Resource):
                     print("Skipping item - Invalid format:", item)
             inputTokens = chat_model.count_tokens(history)
             if data['stream'] == True: # use generate_responses to stream responses
-                response = chat_model.generate_content(history, stream=True)
+                response = chat_model.generate_content(history, generation_config=generation_config, stream=True)
                 return Response(data_generator(response, inputTokens.total_tokens, chat_model), mimetype='text/event-stream')
             
             return make_response(jsonify(response), 200)
-        except openai.error.OpenAIError as e:
-            # Handle OpenAI API errors
-            error_message = str(e)
-            app.logger.error(f"OpenAI API Error: {error_message}")
-            raise CustomError(500, error_message)
+        except ResponseValidationError as e:
+            telegram_report_error("vertex", "NO_CHAT_ID", "NO_CODE", str(e))
+            raise CustomError(e.code, e.message)
+        except GoogleAPICallError as e:
+            telegram_report_error("vertex", "NO_CHAT_ID", e.code, e.message)
+            raise CustomError(e.code, e.message)
+        except ClientError as e:
+            telegram_report_error("vertex", "NO_CHAT_ID", e.code, e.message)
+            raise CustomError(e.code, e.message)    
         except Exception as e:
             # Handle other unexpected errors
             error_message = str(e)
