@@ -1,4 +1,5 @@
 from flask import request, jsonify, Response, make_response, current_app as app
+
 from .vertex_resource import VertexGeminiCompletionRes
 from .anthropic import AnthropicCompletionRes
 from flask_restx import Namespace, Resource
