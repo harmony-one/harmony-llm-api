@@ -1,9 +1,11 @@
+import anthropic.types
 from flask import request, Response, current_app as app
 from flask_restx import Namespace, Resource
 import anthropic
 import json
 from res import EngMsg as msg, CustomError
 from config import config
+from services.telegram import telegram_report_error
 
 api = Namespace('xai', description=msg.API_NAMESPACE_XAI_DESCRIPTION)
 
@@ -53,12 +55,15 @@ class XaiCompletionRes(Resource):
             # response = client.messages.create(**data)
             responseJson = extract_response_data(response)
 
-        except anthropic.AnthropicError as e:
-            error_code = e.status_code
-            error_json = json.loads(e.response.text)
-            error_message = error_json["error"]["message"]
-            app.logger.error(f"Unexpected Error: ({error_code}) {error_message}")
+
+        except anthropic.APIError as e:
+            # This will catch BadRequestError, RateLimitError, AuthenticationError, etc.
+            error_code = getattr(e, 'status_code', 500)
+            error_message = str(e)
+            app.logger.error(f"API Error: ({error_code}) {error_message}")
+            telegram_report_error("xai", "NO_CHAT_ID", error_code, error_message)
             raise CustomError(error_code, error_message)
+        
         except Exception as e:
             app.logger.error(f"Unexpected Error: {str(e)}")
             raise CustomError(500, "An unexpected error occurred.")
