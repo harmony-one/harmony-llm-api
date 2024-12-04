@@ -23,4 +23,7 @@ class Config(object):
     TELEGRAM_API_KEY = os.environ.get('TELEGRAM_API_KEY')
     XAI_API_KEY = os.getenv("XAI_API_KEY")
     TELEGRAM_REPORT_ID = os.environ.get('TELEGRAM_REPORT_ID') # telegram user id
+    WEB3_PROVIDER_URL = 'https://api.harmony.one'
+    JWT_EXPIRATION_MINUTES = 60
+    REFRESH_EXPIRATION_DAYS = 1
 config = Config()
