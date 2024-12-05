@@ -143,3 +143,7 @@ Werkzeug==3.0.2
 yarl==1.9.4
 yfinance==0.2.38
 zipp==3.18.1
+flask-jwt-extended==4.7.1
+eth-account==0.13.4
+web3==7.6.0
+# werkzeug = "==2.3.7"

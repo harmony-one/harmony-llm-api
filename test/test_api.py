@@ -4,8 +4,9 @@ from eth_account import Account
 from eth_account.messages import encode_defunct
 import os
 
+ENDPOINT = 'https://harmony-llm-api-dev.fly.dev' # 'http://127.0.0.1:5000'):
 class APITester:
-    def __init__(self, base_url='http://127.0.0.1:5000'):
+    def __init__(self, base_url=ENDPOINT):
         self.base_url = base_url
         self.session = requests.Session()
         

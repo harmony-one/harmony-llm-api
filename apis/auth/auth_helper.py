@@ -1,3 +1,4 @@
+from sqlalchemy.exc import IntegrityError
 from flask_jwt_extended import create_access_token, create_refresh_token
 from eth_account.messages import encode_defunct
 from web3 import Web3
@@ -14,6 +15,38 @@ class AuthHelper:
         self.config = config
         self.w3 = Web3(Web3.HTTPProvider(config.WEB3_PROVIDER_URL))
     
+    async def get_user(self, address: str) -> Optional[User]:
+        """Get user by address."""
+        return User.query.filter_by(address=address.lower()).first()
+    
+    async def get_user_by_username(self, username: str) -> Optional[User]:
+        """Get user by username."""
+        return User.query.filter_by(username=username).first()
+
+
+    async def create_user(self, address: str) -> User:
+        """Create a new user."""
+        address = address.lower()
+        # Generate initial username
+        username = User.generate_username(address)
+        
+        # If username exists, use full address as username
+        if await self.get_user_by_username(username):
+            username = address
+            
+        user = User(
+            address=address,
+            username=username
+        )
+        
+        try:
+            db.session.add(user)
+            db.session.commit()
+            return user
+        except IntegrityError:
+            db.session.rollback()
+            raise ValueError("User already exists")
+        
     def get_sign_in_request(self, address: str) -> Optional[SignInRequest]:
         """Get existing sign in request for address"""
         return SignInRequest.query.filter_by(
@@ -58,17 +91,16 @@ class AuthHelper:
     
     def get_or_create_user(self, address: str) -> User:
         """Get existing user or create new one"""
-        user = User.query.filter_by(address=address.lower()).first()
-        if not user:
-            username = User.generate_username(address)
-            # Check if username exists
-            while User.query.filter_by(username=username).first():
-                username = address.lower()
+        user = self.get_user(address)
+        if user:
+            return user
             
-            user = User(address=address.lower(), username=username)
-            db.session.add(user)
-            db.session.commit()
-        return user
+        try:
+            user = self.create_user(address)
+            return user
+        except Exception as e:
+            db.session.rollback()
+            raise e
     
 
     def validate_token_jti(self, jti: str, user_id: int) -> bool:
@@ -87,12 +119,6 @@ class AuthHelper:
         token = Token(user_id=user_id, jti=jti)
         db.session.add(token)
         db.session.commit()
-        
-        # Convert user_id to string for JWT identity
-        payload = {
-            'user_id': str(user_id),  # Convert to string
-            'jti': jti
-        }
         
         access_token = create_access_token(
             identity=str(user_id),  # Use string user_id as identity
