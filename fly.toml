@@ -1,9 +1,6 @@
-# fly.toml app configuration file generated for harmony-llm-api-dev on 2023-10-12T17:41:19-05:00
-#
-# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
-#
+# fly.toml app configuration file for harmony-llm-api
 
-app = "harmony-llm-api-dev"
+app = "harmony-llm-api"
 primary_region = "den"
 
 [build]
@@ -17,5 +14,12 @@ primary_region = "den"
   processes = ["app"]
 
 [mounts]
-  source="llm_api_data_dev"
+  source="llm_api_data"
   destination="/data"
+
+[env]
+  FLASK_APP = "main.py"
+  FLASK_ENV = "production"
+
+[deploy]
+  release_command = "flask db upgrade"

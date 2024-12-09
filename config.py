@@ -26,4 +26,5 @@ class Config(object):
     WEB3_PROVIDER_URL = 'https://api.harmony.one'
     JWT_EXPIRATION_MINUTES = 30
     REFRESH_EXPIRATION_DAYS = 7
+    DATABASE_URL= os.environ.get('DATABASE_URL') if os.environ.get('DATABASE_URL') else 'sqlite:///:memory:'
 config = Config()

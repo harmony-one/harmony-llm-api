@@ -89,14 +89,14 @@ class AuthHelper:
         SignInRequest.query.filter_by(address=address.lower()).delete()
         db.session.commit()
     
-    def get_or_create_user(self, address: str) -> User:
+    async def get_or_create_user(self, address: str) -> User:
         """Get existing user or create new one"""
-        user = self.get_user(address)
+        user = await self.get_user(address)
         if user:
             return user
             
         try:
-            user = self.create_user(address)
+            user = await self.create_user(address)
             return user
         except Exception as e:
             db.session.rollback()

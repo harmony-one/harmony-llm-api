@@ -2,6 +2,7 @@ from flask import request, jsonify, make_response, current_app as app
 from flask_restx import Namespace, Resource
 from werkzeug.utils import secure_filename
 from openai.error import OpenAIError
+from .auth import require_any_auth
 from res import EngMsg as msg, CustomError
 import openai
 import os
@@ -68,3 +69,33 @@ class UploadAudioFile(Resource):
         app.logger.error(f"Unexpected Error: {error_message}")
         raise CustomError(500, "An unexpected error occurred.")
 
+
+@api.route('/generate-image', methods=['POST'])
+class GenerateImage(Resource):
+    @require_any_auth
+    def post(self):
+        try:
+            data = request.get_json()
+            if not data or 'prompt' not in data:
+                return {"error": "No prompt provided"}, 400
+
+            size = data.get('size', '1024x1024')
+            n = min(max(1, data.get('n', 1)), 10)
+
+            response = openai.Image.create(
+                prompt=data['prompt'],
+                size=size,
+                n=n,
+            )
+
+            return {"images": [img['url'] for img in response['data']]}, 200
+
+        except OpenAIError as e:
+            error_message = str(e)
+            app.logger.error(f"OpenAI API Error: {error_message}")
+            telegram_report_error("openai", "NO_CHAT_ID", e.code, error_message)
+            raise CustomError(500, error_message)
+        except Exception as e:
+            error_message = str(e)
+            app.logger.error(f"Unexpected Error: {error_message}")
+            raise CustomError(500, "An unexpected error occurred.")

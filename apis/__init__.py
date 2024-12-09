@@ -8,10 +8,20 @@ from .anthropic import api as anthropic_namespace, AnthropicCompletionRes
 from .luma import api as lumaai_namespace
 from .auth import api as auth_resource
 
+authorizations = {
+    'Bearer': {
+        'type': 'apiKey',
+        'in': 'header',
+        'name': 'Authorization'
+    }
+}
+
 api = Api(
     title='LLMs Api Hub',
     version='1.0',
     description='Large Language Models (LLM) API Hub',
+    authorizations=authorizations,
+    security='Bearer'
 )
 
 api.add_namespace(vertex_namespace)

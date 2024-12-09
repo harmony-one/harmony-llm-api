@@ -1,3 +1,4 @@
+import asyncio
 from flask_restx import Namespace, Resource, fields 
 from http import HTTPStatus
 from .auth_helper import AuthHelper
@@ -78,10 +79,29 @@ class VerifyHandler(Resource):
                 return {'error': 'Invalid signature'}, 401
             
             logging.debug("Signature verified successfully")
-            # Get or create user
-            user = auth_service.get_or_create_user(address)
-            logging.debug(f"User retrieved/created: {user.id}")
+            # # Get or create user
+            # user = auth_service.get_or_create_user(address)
+            # logging.debug(f"User retrieved/created: {user.id}")
+
+             # Create event loop and run async operations
+            async def get_user_async():
+                return await auth_service.get_or_create_user(address)
+                
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                user = loop.run_until_complete(get_user_async())
+            finally:
+                loop.close()
             
+            
+            logging.debug(f"User retrieved/created: {user.id}")
+
+
+
+
+
+
             # Generate tokens
             access_token, refresh_token = auth_service.generate_tokens(user.id)
             logging.debug("Tokens generated successfully")
@@ -100,8 +120,9 @@ class VerifyHandler(Resource):
                 }
             }
             
-            logging.debug("Preparing response data")
+            logging.debug("Preparing response data", response_data)
             return response_data
+            # return  make_response(jsonify(response_data), 200)
             
         except Exception as e:
             logging.error(f"Authentication error: {str(e)}", exc_info=True)
