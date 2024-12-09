@@ -32,6 +32,9 @@ flask-jwt-extended = "==4.7.1"
 eth-account = "==0.13.4"
 web3 = "==7.6.0"
 werkzeug = "==2.3.7"
+flask-migrate = "*"
+alembic = "*"
+psycopg2-binary = "*"
 
 [dev-packages]
 

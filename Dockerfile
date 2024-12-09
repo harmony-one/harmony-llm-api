@@ -3,6 +3,7 @@ FROM python:3.10.13
  
 # Set environment variables for configuration
 ENV FLASK_APP=main.py
+
 # ENV GOOGLE_APPLICATION_CREDENTIALS=/app/res/service_account.json
  
 # Set default values for environment variables
@@ -25,11 +26,14 @@ RUN pip install --no-cache-dir -r requirements.txt
 # anthropic package is not installed with the previous command
 RUN pip install --no-cache-dir anthropic
 RUN pip install --no-cache-dir vertexai
- 
+
+# Ensure the start script is executable
+RUN chmod +x start.sh
+
 # Expose the port on which the Flask app will run
 EXPOSE 8080
  
 # Run the Flask app when the container starts
 # CMD ["flask", "--app", "main.py", "run", "--host=0.0.0.0"]
-CMD ["python", "main.py"]
+CMD ["./start.sh"]
 
