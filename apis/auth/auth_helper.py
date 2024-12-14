@@ -23,14 +23,11 @@ class AuthHelper:
         """Get user by username."""
         return User.query.filter_by(username=username).first()
 
-
     async def create_user(self, address: str) -> User:
         """Create a new user."""
         address = address.lower()
-        # Generate initial username
         username = User.generate_username(address)
         
-        # If username exists, use full address as username
         if await self.get_user_by_username(username):
             username = address
             
@@ -55,7 +52,6 @@ class AuthHelper:
     
     def create_sign_in_request(self, address: str) -> SignInRequest:
         """Create new sign in request with nonce"""
-        # Delete any existing requests
         SignInRequest.query.filter_by(address=address.lower()).delete()
         
         nonce = uuid.uuid4().int % 1000000  # Generate 6-digit nonce
@@ -71,14 +67,11 @@ class AuthHelper:
         """Verify wallet signature matches address"""
         try:
             message = f"I'm signing my one-time nonce: {nonce}"
-            logging.debug(f"Verifying signature for message: {message}")
             encoded_message = encode_defunct(text=message)
             recovered_address = self.w3.eth.account.recover_message(
                 encoded_message,
                 signature=signature
             )
-            logging.debug(f"Recovered address: {recovered_address}")
-            logging.debug(f"Original address: {address}")
             return recovered_address.lower() == address.lower()
         except Exception as e:
             logging.error(f"Signature verification failed: {str(e)}", exc_info=True)
@@ -101,7 +94,6 @@ class AuthHelper:
         except Exception as e:
             db.session.rollback()
             raise e
-    
 
     def validate_token_jti(self, jti: str, user_id: int) -> bool:
         """Validate that the JTI exists and belongs to the user"""
@@ -121,13 +113,20 @@ class AuthHelper:
         db.session.commit()
         
         access_token = create_access_token(
-            identity=str(user_id),  # Use string user_id as identity
-            additional_claims={'jti': jti}  # Add jti as additional claim
+            identity=str(user_id),
+            additional_claims={
+                'jti': jti,
+                'type': 'access'
+            },
+            fresh=False
         )
         
         refresh_token = create_refresh_token(
-            identity=str(user_id),  # Use string user_id as identity
-            additional_claims={'jti': jti}  # Add jti as additional claim
+            identity=str(user_id),
+            additional_claims={
+                'jti': jti,
+                'type': 'refresh'
+            }
         )
         
         return access_token, refresh_token

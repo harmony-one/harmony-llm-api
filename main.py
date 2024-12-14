@@ -16,11 +16,17 @@ auth = HTTPTokenAuth(scheme='Bearer')
 
 def create_app():
     app = Flask(__name__)
-    
+    print(f"Initializing app with SECRET_KEY: {app_config.config.SECRET_KEY[:10]}...") 
     # Configuration
+    
     app.config['JWT_SECRET_KEY'] = app_config.config.SECRET_KEY
     app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=1)
     app.config['JWT_REFRESH_TOKEN_EXPIRES'] = timedelta(days=30)
+
+    app.config['JWT_DECODE_ALGORITHMS'] = ['HS256']
+    app.config['JWT_ENCODE_NBF'] = False  # Disable "not before" claim
+    app.config['JWT_ERROR_MESSAGE_KEY'] = 'message'
+
     app.config['SECRET_KEY'] = app_config.config.SECRET_KEY
     app.config['SESSION_PERMANENT'] = True
     app.config['SQLALCHEMY_DATABASE_URI'] = app_config.config.DATABASE_URL
