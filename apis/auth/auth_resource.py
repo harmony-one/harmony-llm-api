@@ -2,10 +2,9 @@ import asyncio
 from flask_restx import Namespace, Resource, fields 
 from http import HTTPStatus
 from .auth_helper import AuthHelper
-from flask import request, jsonify, make_response, current_app as app
+from flask import request, jsonify, current_app as app
 from res import EngMsg as msg
 from flask_jwt_extended import get_jwt, jwt_required, get_jwt_identity
-import logging
 
 api = Namespace('auth', description=msg.API_NAMESPACE_LLMS_DESCRIPTION)
 
@@ -24,7 +23,6 @@ auth_service = AuthHelper()
 
 @api.route('/nonce')
 class NonceHandler(Resource):
-    
     def post(self):
         try:
             data = request.get_json()
@@ -32,7 +30,7 @@ class NonceHandler(Resource):
               
             if not address:
                 return jsonify({"error": "Address is required"}), 400
-            app.logger.info(f'handling nonce request for address {address}')
+                
             # Get or create sign in request
             sign_in = auth_service.get_sign_in_request(address)
             if not sign_in:
@@ -44,46 +42,34 @@ class NonceHandler(Resource):
             })
               
         except Exception as e:
-            logging.error(f"Error generating nonce: {str(e)}")
+            app.logger.error(f"Error generating nonce: {str(e)}")
             return api.marshal({
                 'error': "Failed to generate nonce",
                 'error_code': 'NONCE_FAILED'
             }, error_response), HTTPStatus.INTERNAL_SERVER_ERROR
 
-@api.route('/verify')
+@api.route('/verify-token')
 class VerifyHandler(Resource):
     def post(self):
         """Verify wallet signature and issue tokens"""
         try:
             data = request.get_json()
-            logging.debug(f"Received verification data: {data}")
-            
             address = data.get('address')
             signature = data.get('signature')
             
             if not address or not signature:
                 return {'error': 'Address and signature required'}, 400
             
-            app.logger.info(f'handling verify request for address {address}')
-            logging.debug(f"Looking for sign in request for address: {address}")
-            
             # Get sign in request
             sign_in = auth_service.get_sign_in_request(address)
             if not sign_in:
                 return {'error': 'No sign in request found'}, 404
             
-            logging.debug(f"Found sign in request with nonce: {sign_in.nonce}")
-            
             # Verify signature
             if not auth_service.verify_signature(address, signature, sign_in.nonce):
                 return {'error': 'Invalid signature'}, 401
             
-            logging.debug("Signature verified successfully")
-            # # Get or create user
-            # user = auth_service.get_or_create_user(address)
-            # logging.debug(f"User retrieved/created: {user.id}")
-
-             # Create event loop and run async operations
+            # Create event loop and run async operations
             async def get_user_async():
                 return await auth_service.get_or_create_user(address)
                 
@@ -94,17 +80,8 @@ class VerifyHandler(Resource):
             finally:
                 loop.close()
             
-            
-            logging.debug(f"User retrieved/created: {user.id}")
-
-
-
-
-
-
             # Generate tokens
             access_token, refresh_token = auth_service.generate_tokens(user.id)
-            logging.debug("Tokens generated successfully")
             
             # Delete used sign in request
             auth_service.delete_sign_in_request(address)
@@ -114,18 +91,16 @@ class VerifyHandler(Resource):
                 'refresh_token': refresh_token,
                 'token_type': 'Bearer',
                 'user': {
-                    'id': str(user.id),  # Convert to string to ensure JSON serialization
+                    'id': str(user.id),
                     'address': user.address,
                     'username': user.username
                 }
             }
             
-            logging.debug("Preparing response data", response_data)
             return response_data
-            # return  make_response(jsonify(response_data), 200)
             
         except Exception as e:
-            logging.error(f"Authentication error: {str(e)}", exc_info=True)
+            app.logger.error(f"Authentication error: {str(e)}", exc_info=True)
             return api.marshal({
                 'error': "Authentication failed",
                 'error_code': 'VERIFY_FAILED'
@@ -152,7 +127,7 @@ class RefreshHandler(Resource):
                     'error': 'Invalid token claims', 
                     'error_code': 'INVALID_CLAIMS'
                 }, 401
-            app.logger.info(f'handling refresh request')
+                
             # Validate JTI
             if not auth_service.validate_token_jti(jti, int(user_id)):
                 return {
@@ -173,9 +148,8 @@ class RefreshHandler(Resource):
             }, token_response), HTTPStatus.OK
         
         except Exception as e:
-            logging.error(f"Token refresh error: {str(e)}")
+            app.logger.error(f"Token refresh error: {str(e)}")
             return api.marshal({
                 'error': 'Failed to refresh token',
                 'error_code': 'REFRESH_FAILED'
             }, error_response), HTTPStatus.INTERNAL_SERVER_ERROR
-
