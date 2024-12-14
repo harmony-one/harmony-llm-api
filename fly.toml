@@ -1,6 +1,6 @@
 # fly.toml app configuration file for harmony-llm-api
 
-app = "harmony-llm-api"
+app = "harmony-llm-api-dev"
 primary_region = "den"
 
 [build]
@@ -14,12 +14,12 @@ primary_region = "den"
   processes = ["app"]
 
 [mounts]
-  source="llm_api_data"
+  source="llm_api_data_dev"
   destination="/data"
 
 [env]
   FLASK_APP = "main.py"
-  FLASK_ENV = "production"
+  FLASK_ENV = "test"
 
 [deploy]
   release_command = "flask db upgrade"
