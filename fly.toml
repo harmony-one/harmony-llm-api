@@ -20,6 +20,7 @@ primary_region = "den"
 [env]
   FLASK_APP = "main.py"
   FLASK_ENV = "test"
+  ENV = "test"
 
 [deploy]
   release_command = "flask db upgrade"
