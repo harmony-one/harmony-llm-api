@@ -105,7 +105,8 @@ def require_any_auth(f):
                     if token in app_config.config.API_KEYS:
                         g.auth_type = 'token'
                         g.is_jwt_user = False
-                        auth_successful = True  
+                        auth_successful = True
+                        app.logger.debug(f"API token-based verification successful")
                         return f(*args, **kwargs)
                 except Exception as e:
                     app.logger.error(f"API key verification error: {str(e)}")
