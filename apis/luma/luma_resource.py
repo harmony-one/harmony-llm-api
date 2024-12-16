@@ -1,13 +1,15 @@
-from uuid import uuid4
+import concurrent.futures
+import lumaai
+
 from flask import request, jsonify, Response, make_response, abort, current_app as app
 from flask_restx import Namespace, Resource
+
+from ..auth import require_token
 from . import luna_client
 from .luma_helper import count_generation_in_progress, count_generation_states, get_queue_time, process_generation, LumaErrorHandler
 from res import EngMsg as msg, CustomError
 from config import config
 from services import telegram_report_error
-import concurrent.futures
-import lumaai
 
 api = Namespace('luma', description=msg.API_NAMESPACE_ANTHROPIC_DESCRIPTION)
 
@@ -21,6 +23,7 @@ class Generation:
 @api.route('/generations')
 class LumaAiGenerationRes(Resource):
     
+    @require_token
     def post(self):
         """
         Endpoint to handle Luma requests.
@@ -56,6 +59,7 @@ class LumaAiGenerationRes(Resource):
 @api.route('/generations/list')
 class LumaAiGenerationListRes(Resource):
     
+    @require_token
     def get(self):
         """
         Endpoint that returns the counts of different generation's states.
@@ -70,6 +74,7 @@ class LumaAiGenerationListRes(Resource):
 class GenerationRes(Resource):
     
     @api.doc(params={"generation_id": msg.API_DOC_PARAMS_COLLECTION_NAME})
+    @require_token
     def delete(self, generation_id):
         """
         Endpoint that deletes a generation

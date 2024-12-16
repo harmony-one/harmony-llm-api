@@ -11,7 +11,7 @@ from google.oauth2 import service_account
 import vertexai
 import json
 
-from .auth import require_any_auth
+from .auth import require_any_auth, require_token
 from services import telegram_report_error
 from services.payment import llm_models_manager
 from res import EngMsg as msg, CustomError
@@ -53,6 +53,8 @@ def data_generator(response, input_token_count, model: GenerativeModel):
 
 @api.route('/completions')
 class VertexCompletionRes(Resource):
+    
+    @require_token
     def post(self):
         """
         Endpoint to handle Google's Vertex/Palm2 LLMs.
