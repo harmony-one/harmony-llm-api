@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from decimal import Decimal
 import uuid
 
-from models import TransactionType, Transaction, ModelType
+from models import TransactionType, Transactions, ModelType
 from models import db
 from typing import Optional, List, Dict, Union
 from models.llm_data import ChatModel, ImageModel, Provider, ModelParameters
@@ -79,7 +79,7 @@ class LLMModelsManager:
     def record_transaction(self, user_id: int, model_version: str, 
                          input_tokens: int, output_tokens: int,
                          endpoint: str, status: str = 'success',
-                         error: str = None) -> Transaction:
+                         error: str = None) -> Transactions:
         """Record a transaction for API usage"""
         model = self.get_model(model_version)
         if not model:
@@ -97,7 +97,7 @@ class LLMModelsManager:
         }
         model_type = model_type_mapping.get(model.provider, ModelType.GPT35)
 
-        transaction = Transaction(
+        transaction = Transactions(
             user_id=user_id,
             type=TransactionType.API_USAGE,
             amount=-amount,  # Negative amount for usage

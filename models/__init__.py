@@ -6,19 +6,19 @@ class Base(DeclarativeBase):
 
 db = SQLAlchemy(model_class=Base)
 
-from .collection_error_model import CollectionError
-from .auth import Token, User, SignInRequest
-from .transactions import Transaction
+from .collection_errors import CollectionErrors
+from .auth import Tokens, Users, SignInRequests
+from .transactions import Transactions
 from .enums import TransactionType, UserType, ModelType
 from .llm_data import *
 
 __all__ = [
   'db',
-  'CollectionError',
-  'Token',
-  'User',
-  'SignInRequest',
-  'Transaction',
+  'CollectionErrors',
+  'Tokens',
+  'Users',
+  'SignInRequests',
+  'Transactions',
   'TransactionType',
   'UserType',
   'ModelType',
