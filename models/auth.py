@@ -1,18 +1,22 @@
 from datetime import datetime, timezone
 from sqlalchemy import func
 
-from .enums import TransactionType, UserType
-from .transactions import Transaction
+from .enums import UserType
+from .transactions import Transactions
 
 from . import db
     
-class SignInRequest(db.Model):
+class SignInRequests(db.Model):
+    __tablename__ = 'sign_in_requests'
+    
     id = db.Column(db.Integer, primary_key=True)
     address = db.Column(db.String(42), unique=True, nullable=False)
     nonce = db.Column(db.Integer, nullable=False)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     
-class User(db.Model):
+class Users(db.Model):
+    __tablename__ = 'users'
+    
     id = db.Column(db.Integer, primary_key=True)
     address = db.Column(db.String(42), unique=True, nullable=False)
     username = db.Column(db.String(100), unique=True, nullable=False)
@@ -22,35 +26,22 @@ class User(db.Model):
     
     @staticmethod
     def generate_username(address: str) -> str:
-        # Similar to the TypeScript implementation
         return address.replace('0x', '')[:6]
     
     def get_balance(self):
         """Calculate current balance from transactions"""
-        result = db.session.query(func.sum(Transaction.amount)).filter(
-            Transaction.user_id == self.id
+        result = db.session.query(func.sum(Transactions.amount)).filter(
+            Transactions.user_id == self.id
         ).scalar() or 0
         
         return result
 
-class Token(db.Model):
+class Tokens(db.Model):
+    __tablename__ = 'tokens'
+    
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     jti = db.Column(db.String(36), unique=True, nullable=False)  # JWT ID
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     
-    user = db.relationship('User', backref=db.backref('tokens', lazy=True))
-
-    def get_usage_stats(self):
-        """Helper method to get API usage statistics"""
-        if self.type != TransactionType.API_USAGE:
-            return None
-            
-        return {
-            'model': self.model_type,
-            'tokens_input': self.tokens_input,
-            'tokens_output': self.tokens_output,
-            'cost': self.amount,
-            'endpoint': self.endpoint,
-            'status': self.status
-        }
+    user = db.relationship('Users', backref=db.backref('tokens', lazy=True))

@@ -6,7 +6,7 @@ from typing import Optional, Tuple
 import logging
 import uuid
 from datetime import datetime, timedelta
-from models.auth import SignInRequest, User, Token
+from models.auth import SignInRequests, Users, Tokens
 from models import db
 from config import config
 
@@ -15,23 +15,23 @@ class AuthHelper:
         self.config = config
         self.w3 = Web3(Web3.HTTPProvider(config.WEB3_PROVIDER_URL))
     
-    async def get_user(self, address: str) -> Optional[User]:
+    async def get_user(self, address: str) -> Optional[Users]:
         """Get user by address."""
-        return User.query.filter_by(address=address.lower()).first()
+        return Users.query.filter_by(address=address.lower()).first()
     
-    async def get_user_by_username(self, username: str) -> Optional[User]:
+    async def get_user_by_username(self, username: str) -> Optional[Users]:
         """Get user by username."""
-        return User.query.filter_by(username=username).first()
+        return Users.query.filter_by(username=username).first()
 
-    async def create_user(self, address: str) -> User:
+    async def create_user(self, address: str) -> Users:
         """Create a new user."""
         address = address.lower()
-        username = User.generate_username(address)
+        username = Users.generate_username(address)
         
         if await self.get_user_by_username(username):
             username = address
             
-        user = User(
+        user = Users(
             address=address,
             username=username
         )
@@ -44,18 +44,18 @@ class AuthHelper:
             db.session.rollback()
             raise ValueError("User already exists")
         
-    def get_sign_in_request(self, address: str) -> Optional[SignInRequest]:
+    def get_sign_in_request(self, address: str) -> Optional[SignInRequests]:
         """Get existing sign in request for address"""
-        return SignInRequest.query.filter_by(
+        return SignInRequests.query.filter_by(
             address=address.lower()
         ).first()
     
-    def create_sign_in_request(self, address: str) -> SignInRequest:
+    def create_sign_in_request(self, address: str) -> SignInRequests:
         """Create new sign in request with nonce"""
-        SignInRequest.query.filter_by(address=address.lower()).delete()
+        SignInRequests.query.filter_by(address=address.lower()).delete()
         
         nonce = uuid.uuid4().int % 1000000  # Generate 6-digit nonce
-        request = SignInRequest(
+        request = SignInRequests(
             address=address.lower(),
             nonce=nonce
         )
@@ -79,10 +79,10 @@ class AuthHelper:
     
     def delete_sign_in_request(self, address: str):
         """Delete sign in request after use"""
-        SignInRequest.query.filter_by(address=address.lower()).delete()
+        SignInRequests.query.filter_by(address=address.lower()).delete()
         db.session.commit()
     
-    async def get_or_create_user(self, address: str) -> User:
+    async def get_or_create_user(self, address: str) -> Users:
         """Get existing user or create new one"""
         user = await self.get_user(address)
         if user:
@@ -97,7 +97,7 @@ class AuthHelper:
 
     def validate_token_jti(self, jti: str, user_id: int) -> bool:
         """Validate that the JTI exists and belongs to the user"""
-        token = Token.query.filter_by(
+        token = Tokens.query.filter_by(
             jti=jti,
             user_id=user_id
         ).first()
@@ -108,7 +108,7 @@ class AuthHelper:
         jti = str(uuid.uuid4())
         
         # Store token record
-        token = Token(user_id=user_id, jti=jti)
+        token = Tokens(user_id=user_id, jti=jti)
         db.session.add(token)
         db.session.commit()
         
@@ -133,5 +133,5 @@ class AuthHelper:
     
     def revoke_token(self, jti: str):
         """Revoke a token by deleting it"""
-        Token.query.filter_by(jti=jti).delete()
+        Tokens.query.filter_by(jti=jti).delete()
         db.session.commit()

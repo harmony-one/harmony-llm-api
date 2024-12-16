@@ -6,8 +6,8 @@ from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from res import DatabaseError
 from . import db
 
-class CollectionError (db.Model):
-    __tablename__ = 'app_collection_errors'
+class CollectionErrors (db.Model):
+    __tablename__ = 'collection_errors'
 
     id = Column(Integer, primary_key=True)
     collection_name = Column(String)
