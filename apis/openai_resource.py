@@ -1,12 +1,13 @@
+import openai
+import os
+
 from flask import g, request, jsonify, make_response, current_app as app
 from flask_restx import Namespace, Resource
 from werkzeug.utils import secure_filename
 from openai.error import OpenAIError
 from models.enums import ModelType
-from .auth import require_any_auth
+from .auth import require_any_auth, require_token
 from res import EngMsg as msg, CustomError
-import openai
-import os
 from services import telegram_report_error
 from services.payment import check_balance, llm_models_manager
 
@@ -31,7 +32,9 @@ def allowed_file(filename):
 
 @api.route('/upload-audio', methods=['POST'])
 class UploadAudioFile(Resource):
+    
     @api.doc(params={"data": msg.API_DOC_PARAMS_DATA})
+    @require_token
     def post(self):
         """
         Endpoint to handle Openai's Whisper request.

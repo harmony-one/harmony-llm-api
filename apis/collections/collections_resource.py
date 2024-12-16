@@ -5,6 +5,7 @@ from openai import OpenAIError
 import json
 import threading
 from llama_index.llms.base import ChatMessage
+from ..auth import require_token
 from res import EngMsg as msg
 from storages import chromadb
 from res import PdfFileInvalidFormat, InvalidCollectionName, InvalidCollection, CustomError
@@ -42,6 +43,8 @@ class CollectionHandler(Resource):
 
 @api.route('/document')
 class AddDocument(Resource):
+
+    @require_token
     def post(self):
         """
         Endpoint that creates collections
@@ -90,6 +93,7 @@ class AddDocument(Resource):
 @api.route('/document/<collection_name>')
 class CheckDocument(Resource):
 
+    @require_token
     @api.doc(params={"collection_name": msg.API_DOC_PARAMS_COLLECTION_NAME})
     def get(self, collection_name):
         """
@@ -131,6 +135,7 @@ class CheckDocument(Resource):
             current_app.logger.error(f"Unexpected Error: {error_message}")
             raise CustomError(500, "An unexpected error occurred.")
     
+    @require_token
     @api.doc(params={"collection_name": msg.API_DOC_PARAMS_COLLECTION_NAME})
     def delete(self, collection_name):
         """
@@ -154,6 +159,7 @@ class CheckDocument(Resource):
 class WebCrawlerTextRes(Resource):
     # 
     # @copy_current_request_context
+    @require_token
     def post(self):
         """
         Endpoint to handle LLMs request.
