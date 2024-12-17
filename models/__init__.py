@@ -9,7 +9,7 @@ db = SQLAlchemy(model_class=Base)
 from .collection_errors import CollectionErrors
 from .auth import Tokens, Users, SignInRequests
 from .transactions import Transactions
-from .enums import TransactionType, UserType, ModelType
+from .enums import TransactionType, UserType
 from .llm_data import *
 
 __all__ = [
@@ -21,7 +21,6 @@ __all__ = [
   'Transactions',
   'TransactionType',
   'UserType',
-  'ModelType',
   'Provider',
   'Provider',
   'ChargeType',

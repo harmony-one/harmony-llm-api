@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from decimal import Decimal
 import uuid
 
-from models import TransactionType, Transactions, ModelType
+from models import TransactionType, Transactions
 from models import db
 from typing import Optional, List, Dict, Union
 from models.llm_data import ChatModel, ImageModel, Provider, ModelParameters
@@ -89,19 +89,11 @@ class LLMModelsManager:
         price_info = self.get_prompt_price(model_version, input_tokens, output_tokens)
         amount = Decimal(str(price_info['price']))
 
-        # Map provider to ModelType
-        model_type_mapping = {
-            'openai': ModelType.GPT4 if 'gpt-4' in model_version else ModelType.GPT35,
-            'claude': ModelType.CLAUDE,
-            'vertex': ModelType.GEMINI
-        }
-        model_type = model_type_mapping.get(model.provider, ModelType.GPT35)
-
         transaction = Transactions(
             user_id=user_id,
             type=TransactionType.API_USAGE,
             amount=-amount,  # Negative amount for usage
-            model_type=model_type,
+            model=model_version,
             tokens_input=input_tokens,
             tokens_output=output_tokens,
             request_id=str(uuid.uuid4()),
@@ -110,7 +102,7 @@ class LLMModelsManager:
             error=error,
             transaction_metadata={
                 'timestamp': datetime.now(timezone.utc).isoformat(),
-                'model_type': model_type.value,
+                'model': model_version,
                 'model_version': model_version,
                 'endpoint': endpoint,
                 'estimated_cost': str(amount)

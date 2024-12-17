@@ -9,9 +9,3 @@ class TransactionType(Enum):
     WITHDRAWAL = 'withdrawal'
     API_USAGE = 'api_usage'
     REFUND = 'refund'
-
-class ModelType(Enum):
-    GPT_4 = 'gpt-4'
-    GPT_35 = 'gpt-3.5-turbo'
-    CLAUDE = 'claude'
-    GEMINI = 'gemini'
