@@ -21,7 +21,7 @@ def check_balance(f):
             balance = user.get_balance()
             endpoint = request.endpoint
             request_data = request.get_json() if request.is_json else request.form.to_dict()
-            
+            print('FCO:::::::::::: endpoint', endpoint)
             try:
                 estimated_cost = llm_models_manager.estimate_request_cost(endpoint, request_data)
                 

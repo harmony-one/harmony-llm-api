@@ -1,16 +1,16 @@
 from datetime import datetime, timezone
 from . import db
-from .enums import ModelType, TransactionType
+from .enums import TransactionType
 
 class Transactions(db.Model):
     __tablename__ = 'transactions'
     
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_keyx=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     type = db.Column(db.Enum(TransactionType), nullable=False)
     amount = db.Column(db.Numeric(precision=18, scale=8), nullable=False)
     tx_hash = db.Column(db.String(66), unique=True, nullable=True)
-    model_type = db.Column(db.Enum(ModelType), nullable=True)
+    model = db.Column(db.String(50), nullable=True)
     tokens_input = db.Column(db.Integer, nullable=True)
     tokens_output = db.Column(db.Integer, nullable=True)
     request_id = db.Column(db.String(36), unique=True, nullable=True)

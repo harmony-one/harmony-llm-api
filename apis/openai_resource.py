@@ -5,7 +5,6 @@ from flask import g, request, jsonify, make_response, current_app as app
 from flask_restx import Namespace, Resource
 from werkzeug.utils import secure_filename
 from openai.error import OpenAIError
-from models.enums import ModelType
 from .auth import require_any_auth, require_token
 from res import EngMsg as msg, CustomError
 from services import telegram_report_error
@@ -93,7 +92,7 @@ class GenerateImage(Resource):
             if g.is_jwt_user:
                 transaction = llm_models_manager.record_transaction(
                     user_id=g.user.id,
-                    model_version=ModelType.DALL_E,
+                    model_version='dalle', # ::::: NEEDS TO CHANGE
                     tokens_input=n,
                     tokens_output=0,
                     endpoint='/generate-image',
