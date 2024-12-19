@@ -2,6 +2,7 @@ from functools import wraps
 from flask import g, request, current_app as app
 from flask_jwt_extended import get_jwt_identity, verify_jwt_in_request
 from .llm_manager import llm_models_manager
+from models import Users
 
 def check_balance(f):
     @wraps(f)
@@ -10,21 +11,18 @@ def check_balance(f):
             verify_jwt_in_request()
             user_id = get_jwt_identity()
             g.is_jwt_user = True
-            
-            from models import User
-            user = User.query.get(int(user_id))
-            
+
+            user = Users.query.get(int(user_id))
             if not user:
                 app.logger.error(f"User not found with ID: {user_id}")
                 return {"msg": "User not found"}, 404
-                
+
             balance = user.get_balance()
             endpoint = request.endpoint
             request_data = request.get_json() if request.is_json else request.form.to_dict()
-            print('FCO:::::::::::: endpoint', endpoint)
+            
             try:
                 estimated_cost = llm_models_manager.estimate_request_cost(endpoint, request_data)
-                
                 if balance < estimated_cost:
                     return {
                         "msg": "Insufficient balance",

@@ -104,6 +104,45 @@ class APITester:
             print(f"Error processing stream: {str(e)}")
             return {"error": str(e)}
 
+    def test_dalle_api(self, headers):
+        print("Testing DALL-E image generation...")
+        try:
+            response = self.session.post(
+                f"{self.base_url}/openai/generate-image",
+                headers=headers,
+                json={
+                    "prompt": "A cute robot painting a landscape",
+                    "size": "1024x1024",
+                    "n": 1,
+                    "model": "dall-e-3"
+                }
+            )
+            
+            print(f"DALL-E request status code: {response.status_code}")
+            
+            if response.status_code != 200:
+                print(f"Error response content: {response.json()}")
+                return {"error": response.text}
+                
+            response.raise_for_status()
+            
+            result = response.json()
+            print("\nDALL-E API Response:")
+            print(json.dumps(result, indent=2))
+            
+            if 'images' in result:
+                print(f"\nGenerated {len(result['images'])} images:")
+                for i, image_url in enumerate(result['images'], 1):
+                    print(f"Image {i}: {image_url}")
+                    
+            return {"status": "completed", "data": result}
+            
+        except requests.exceptions.RequestException as e:
+            print(f"Request failed: {str(e)}")
+            return {"error": str(e)}
+        except Exception as e:
+            print(f"Error processing response: {str(e)}")
+            return {"error": str(e)}
 
     def run_api_tests(self):
         """Run API tests with automatic token handling"""
@@ -114,11 +153,11 @@ class APITester:
             headers = {"Authorization": f"Bearer {access_token}"}
             
             # Run your API tests here
-            print("\nTesting Gemini API...")
-            self.test_gemini_api()
+            # print("\nTesting Gemini API...")
+            # self.test_gemini_api()
             
-            # print("\nTesting DALL-E API...")
-            # self.test_dalle_api(headers)
+            print("\nTesting DALL-E API...")
+            self.test_dalle_api(headers)
             
         except Exception as e:
             print(f"Error during API tests: {e}")
