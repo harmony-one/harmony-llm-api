@@ -13,3 +13,9 @@ chroma/
 venv/
 uploads/
 test/.test_tokens.json
+
+# Contracts
+node_modules/
+cache/
+artifacts/
+deployments/
