@@ -86,13 +86,22 @@ class GenerateImage(Resource):
             if not data or 'prompt' not in data:
                 return {"error": "No prompt provided"}, 400
 
+            # Get model version from request or use default
+            model_version = data.get('model')
+            if not model_version:
+                # Get default OpenAI image model (DALL-E 3)
+                default_model = llm_models_manager.get_default_image_model("openai")
+                if not default_model:
+                    return {"error": "No default image model found"}, 500
+                model_version = default_model.version
+
             size = data.get('size', '1024x1024')
             n = min(max(1, data.get('n', 1)), 10)
 
             if g.is_jwt_user:
                 transaction = llm_models_manager.record_transaction(
                     user_id=g.user.id,
-                    model_version='dalle', # ::::: NEEDS TO CHANGE
+                    model_version=model_version,
                     tokens_input=n,
                     tokens_output=0,
                     endpoint='/generate-image',
@@ -104,6 +113,7 @@ class GenerateImage(Resource):
                 prompt=data['prompt'],
                 size=size,
                 n=n,
+                model=model_version
             )
 
             return {"images": [img['url'] for img in response['data']]}, 200

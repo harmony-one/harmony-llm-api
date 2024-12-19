@@ -5,7 +5,7 @@ from .enums import TransactionType
 class Transactions(db.Model):
     __tablename__ = 'transactions'
     
-    id = db.Column(db.Integer, primary_keyx=True)
+    id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     type = db.Column(db.Enum(TransactionType), nullable=False)
     amount = db.Column(db.Numeric(precision=18, scale=8), nullable=False)
