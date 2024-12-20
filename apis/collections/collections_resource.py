@@ -5,13 +5,14 @@ from openai import OpenAIError
 import json
 import threading
 from llama_index.llms.base import ChatMessage
+from ..auth import require_token
 from res import EngMsg as msg
 from storages import chromadb
 from res import PdfFileInvalidFormat, InvalidCollectionName, InvalidCollection, CustomError
 from .collections_helper import CollectionHelper
 from models import db
 from services import WebCrawling, PdfHandler
-from models import CollectionError
+from models import CollectionErrors
 
 api = Namespace('collections', description=msg.API_NAMESPACE_LLMS_DESCRIPTION)
 
@@ -42,6 +43,8 @@ class CollectionHandler(Resource):
 
 @api.route('/document')
 class AddDocument(Resource):
+
+    @require_token
     def post(self):
         """
         Endpoint that creates collections
@@ -84,12 +87,13 @@ class AddDocument(Resource):
                     raise InvalidCollection('Invalid collection')
         except (Exception, InvalidCollection) as e:
             context.push()  
-            error = CollectionError(dict( collection_name = collection_name))
+            error = CollectionErrors(dict( collection_name = collection_name))
             error.save()
 
 @api.route('/document/<collection_name>')
 class CheckDocument(Resource):
 
+    @require_token
     @api.doc(params={"collection_name": msg.API_DOC_PARAMS_COLLECTION_NAME})
     def get(self, collection_name):
         """
@@ -99,7 +103,7 @@ class CheckDocument(Resource):
         try:
             current_app.logger.info('Checking collection status')
             if (collection_name): 
-                collection_error = CollectionError.query.filter_by(collection_name=collection_name).first()
+                collection_error = CollectionErrors.query.filter_by(collection_name=collection_name).first()
                 if (collection_error):
                     response = {
                         "price": -1, # TBD
@@ -131,6 +135,7 @@ class CheckDocument(Resource):
             current_app.logger.error(f"Unexpected Error: {error_message}")
             raise CustomError(500, "An unexpected error occurred.")
     
+    @require_token
     @api.doc(params={"collection_name": msg.API_DOC_PARAMS_COLLECTION_NAME})
     def delete(self, collection_name):
         """
@@ -154,6 +159,7 @@ class CheckDocument(Resource):
 class WebCrawlerTextRes(Resource):
     # 
     # @copy_current_request_context
+    @require_token
     def post(self):
         """
         Endpoint to handle LLMs request.

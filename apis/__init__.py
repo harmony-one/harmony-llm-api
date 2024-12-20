@@ -6,12 +6,22 @@ from .collections import api as collections_namespace
 from .openai_resource import api as openai_namespace
 from .anthropic import api as anthropic_namespace, AnthropicCompletionRes
 from .luma import api as lumaai_namespace
+from .auth import api as auth_resource
 
+authorizations = {
+    'Bearer': {
+        'type': 'apiKey',
+        'in': 'header',
+        'name': 'Authorization'
+    }
+}
 
 api = Api(
     title='LLMs Api Hub',
     version='1.0',
     description='Large Language Models (LLM) API Hub',
+    authorizations=authorizations,
+    security='Bearer'
 )
 
 api.add_namespace(vertex_namespace)
@@ -21,3 +31,4 @@ api.add_namespace(openai_namespace)
 api.add_namespace(anthropic_namespace)
 api.add_namespace(lumaai_namespace)
 api.add_namespace(xai_namespace)
+api.add_namespace(auth_resource)

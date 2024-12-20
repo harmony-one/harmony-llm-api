@@ -1,5 +1,7 @@
 from flask import request, jsonify, Response, make_response, current_app as app
 
+from .auth import require_any_auth, require_token
+
 from .vertex_resource import VertexGeminiCompletionRes
 from .anthropic import AnthropicCompletionRes
 from flask_restx import Namespace, Resource
@@ -17,7 +19,8 @@ def data_generator(response):
 
 @api.route('/completions/j2') 
 class LlmsCompletionJ2Res(Resource):
-    
+
+    @require_token
     def post(self):
         """
         Endpoint to handle LLMs request.
@@ -49,6 +52,7 @@ class LlmsCompletionJ2Res(Resource):
 @api.route('/completions') 
 class LlmsCompletionRes(Resource):
     
+    @require_token
     def post(self):
         """
         Main Endpoint to handle Vertex and Anthropic request.
