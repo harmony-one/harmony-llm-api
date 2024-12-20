@@ -6,6 +6,7 @@ from flask_restx import Namespace, Resource
 import anthropic
 import json
 import os
+from ..auth import require_any_auth, require_token
 from services import telegram_report_error
 from .anthropic_helper import anthropicHelper as helper
 from app_types import ToolsBetaMessage
@@ -97,6 +98,7 @@ def create_message(text):
 @api.route('/completions')
 class AnthropicCompletionRes(Resource):
     
+    @require_token
     def post(self):
         """
         Endpoint to handle Anthropic request.
@@ -142,6 +144,7 @@ class AnthropicCompletionToolRes(Resource):
     runningTools = []
     tools = helper.get_claude_tools_definition()
 
+    @require_token
     def post(self):
         """
         Endpoint to handle Anthropic requests with Tools.
@@ -280,7 +283,8 @@ class AnthropicCompletionToolRes(Resource):
 @api.route('/completions/tools/<tool_execution_id>')
 class CheckToolExecution(Resource):            
 
-    @api.doc(params={"tool_execution_id": msg.API_DOC_PARAMS_COLLECTION_NAME})        
+    @api.doc(params={"tool_execution_id": msg.API_DOC_PARAMS_COLLECTION_NAME})
+    @require_token        
     def get(self, tool_execution_id):
         if (tool_execution_id):
             tool = helper.get_running_tool(tool_execution_id)
@@ -318,6 +322,7 @@ class AnthropicPDFSummary(Resource):
                     "model": msg.API_DOC_PARAMS_MODEL,
                     "maxTokens": msg.API_DOC_PARAMS_MAX_TOKENS,
                     "system": msg.API_DOC_PARAMS_SYSTEM})
+    @require_token
     def post(self):
         """
         Endpoint to handle PDF parser and summary.
@@ -383,6 +388,7 @@ class AnthropicCVAnalyze(Resource):
                     "jobDescription": msg.API_DOC_PARAMS_JOB_DESCRIPTION,
                     "model": msg.API_DOC_PARAMS_MODEL,
                     "maxTokens": msg.API_DOC_PARAMS_MAX_TOKENS})
+    @require_token
     def post(self):
         """
         Analyze a given CV with a given Job Description.

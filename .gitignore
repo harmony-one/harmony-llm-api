@@ -12,3 +12,4 @@ data/
 chroma/
 venv/
 uploads/
+test/.test_tokens.json
