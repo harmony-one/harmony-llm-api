@@ -1,11 +1,12 @@
 # main.py
+import atexit
 from flask import Flask, jsonify, request
 from flask_migrate import Migrate
 from flask_httpauth import HTTPTokenAuth
 from flask_jwt_extended import JWTManager, get_jwt_identity
 from flask_session import Session
 from flask_cors import CORS
-from apis import api
+from apis import api, init_deposit_monitoring, cleanup_deposit_monitoring
 from models import db
 from res import CustomError
 from datetime import timedelta
@@ -41,7 +42,10 @@ def create_app():
     jwt = JWTManager(app)
     migrate = Migrate(app, db)
     CORS(app)
-
+    
+    with app.app_context():
+        init_deposit_monitoring(app)
+        atexit.register(cleanup_deposit_monitoring)
 
     @app.route('/')
     def index():

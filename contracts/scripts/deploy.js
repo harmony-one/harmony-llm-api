@@ -14,7 +14,7 @@ async function main() {
     }
 
     // Get the contract factory
-    const HarmonyLLMPayment = await ethers.getContractFactory("HarmonyLLMPayment");
+    const HarmonyLLMPayment = await ethers.getContractFactory("HarmonyLLMPaymentSimple");
     
     // Deploy the contract
     const harmonyLLMPayment = await HarmonyLLMPayment.deploy();

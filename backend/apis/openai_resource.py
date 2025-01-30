@@ -77,8 +77,9 @@ class UploadAudioFile(Resource):
 
 @api.route('/generate-image', methods=['POST'])
 class GenerateImage(Resource):
-    @require_any_auth
-    @check_balance 
+    @require_token
+    # @require_any_auth
+    # @check_balance 
     def post(self):
         try:
             app.logger.info('handling generate-image request')

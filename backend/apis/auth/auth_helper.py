@@ -1,7 +1,6 @@
 from sqlalchemy.exc import IntegrityError
 from flask_jwt_extended import create_access_token, create_refresh_token
 from eth_account.messages import encode_defunct
-from web3 import Web3
 from typing import Optional, Tuple
 import logging
 import uuid
@@ -9,11 +8,11 @@ from datetime import datetime, timedelta
 from models.auth import SignInRequests, Users, Tokens
 from models import db
 from config import config
-
+from blockchain import web3_auth
 class AuthHelper:
     def __init__(self):
         self.config = config
-        self.w3 = Web3(Web3.HTTPProvider(config.WEB3_PROVIDER_URL))
+        self.web3_auth = web3_auth
     
     async def get_user(self, address: str) -> Optional[Users]:
         """Get user by address."""
@@ -64,19 +63,8 @@ class AuthHelper:
         return request
     
     def verify_signature(self, address: str, signature: str, nonce: int) -> bool:
-        """Verify wallet signature matches address"""
-        try:
-            message = f"I'm signing my one-time nonce: {nonce}"
-            encoded_message = encode_defunct(text=message)
-            recovered_address = self.w3.eth.account.recover_message(
-                encoded_message,
-                signature=signature
-            )
-            return recovered_address.lower() == address.lower()
-        except Exception as e:
-            logging.error(f"Signature verification failed: {str(e)}", exc_info=True)
-            return False
-    
+        return self.web3_auth.verify_signature(address, signature, nonce)
+
     def delete_sign_in_request(self, address: str):
         """Delete sign in request after use"""
         SignInRequests.query.filter_by(address=address.lower()).delete()

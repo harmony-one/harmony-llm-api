@@ -4,6 +4,7 @@ import requests
 from test_config import TestConfig
 from token_manager import TokenManager
 from auth_tester import AuthTester
+from deposit_tester import DepositTester
 
 
 class APITester:
@@ -144,6 +145,19 @@ class APITester:
             print(f"Error processing response: {str(e)}")
             return {"error": str(e)}
 
+    def test_deposit_api(self, header):
+
+        tester = DepositTester()
+     
+        # Optional: Add your test wallet private key to make actual test deposits
+        TEST_PRIVATE_KEY = None  # "your_private_key_here"
+        
+        # Run tests
+        results = tester.run_deposit_tests(header)
+        print("\nTest Results:")
+        print(json.dumps(results, indent=2))
+
+
     def run_api_tests(self):
         """Run API tests with automatic token handling"""
         try:
@@ -156,8 +170,10 @@ class APITester:
             # print("\nTesting Gemini API...")
             # self.test_gemini_api()
             
-            print("\nTesting DALL-E API...")
-            self.test_dalle_api(headers)
+            print("Testing deposit")
+            self.test_deposit_api(headers)
+            # print("\nTesting DALL-E API...")
+            # self.test_dalle_api(headers)
             
         except Exception as e:
             print(f"Error during API tests: {e}")

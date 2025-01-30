@@ -100,8 +100,9 @@ class VertexCompletionRes(Resource):
 
 @api.route('/completions/gemini')
 class VertexGeminiCompletionRes(Resource):
-    @require_any_auth
-    @check_balance
+    @require_token
+    # @require_any_auth
+    # @check_balance
     def post(self):
         """
         Endpoint to handle Google's Vertex/Gemini.

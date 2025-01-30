@@ -7,6 +7,7 @@ from .openai_resource import api as openai_namespace
 from .anthropic import api as anthropic_namespace, AnthropicCompletionRes
 from .luma import api as lumaai_namespace
 from .auth import api as auth_resource
+from .deposit import api as deposit_resource, init_deposit_monitoring, cleanup_deposit_monitoring
 
 authorizations = {
     'Bearer': {
@@ -32,3 +33,10 @@ api.add_namespace(anthropic_namespace)
 api.add_namespace(lumaai_namespace)
 api.add_namespace(xai_namespace)
 api.add_namespace(auth_resource)
+api.add_namespace(deposit_resource)
+
+__all__ = [
+  'api',
+  'init_deposit_monitoring',
+  'cleanup_deposit_monitoring'
+]
