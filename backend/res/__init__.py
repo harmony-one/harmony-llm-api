@@ -3,7 +3,7 @@ import sys
 from config import config
 
 from .text_messages import EngMsg
-from .llm_exceptions import InvalidCollectionName, PdfFileInvalidFormat, DatabaseError, InvalidCollection
+from .llm_exceptions import InvalidCollectionName, PdfFileInvalidFormat, DatabaseError, InvalidCollection, Web3ConnectionError
 from .custom_error import CustomError
 
 
@@ -25,5 +25,6 @@ __all__ = [
     'PdfFileInvalidFormat',
     'DatabaseError',
     'InvalidCollection',
-    'CustomError'
+    'CustomError',
+    'Web3ConnectionError'
 ]

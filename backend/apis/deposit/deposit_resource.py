@@ -14,6 +14,11 @@ from config import config
 
 api = Namespace('deposit', description='Deposit operations')
 
+error_model = api.model('Error', {
+    'error': fields.String(required=True, description='Error message'),
+    'code': fields.String(required=False, description='Error code')
+})
+
 deposit_verify_model = api.model('DepositVerify', {
     'transaction_hash': fields.String(required=True, description='Transaction hash to verify')
 })
@@ -91,6 +96,9 @@ class DepositResource(Resource):
     @api.marshal_with(deposit_info_model)
     def get(self):
         try:
+            if not deposit_helper.web3_service.w3.is_connected():
+                api.abort(503, "Blockchain service temporarily unavailable")
+            
             min_deposit = deposit_helper.get_minimum_deposit()
             current_balance = deposit_helper.get_contract_balance()
             

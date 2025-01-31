@@ -1,12 +1,14 @@
 # main.py
+import asyncio
 import atexit
+import threading
 from flask import Flask, jsonify, request
 from flask_migrate import Migrate
 from flask_httpauth import HTTPTokenAuth
 from flask_jwt_extended import JWTManager, get_jwt_identity
 from flask_session import Session
 from flask_cors import CORS
-from apis import api, init_deposit_monitoring, cleanup_deposit_monitoring
+from apis import api # init_deposit_monitoring, cleanup_deposit_monitoring
 from models import db
 from res import CustomError
 from datetime import timedelta
@@ -14,6 +16,69 @@ import config as app_config
 import logging
 
 auth = HTTPTokenAuth(scheme='Bearer')
+
+class MonitoringManager:
+    def __init__(self):
+        self.monitor_thread = None
+        self.loop = None
+        self.should_stop = False
+        self._monitoring_started = False
+
+    def start_monitoring(self, app):
+        """Start monitoring in a separate thread"""
+        if self.monitor_thread is not None or self._monitoring_started:
+            return
+
+        self._monitoring_started = True
+
+        def run_async_monitoring():
+            self.loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(self.loop)
+            
+            with app.app_context():
+                try:
+                    from apis.deposit.deposit_helper import deposit_helper
+                    
+                    async def monitor():
+                        try:
+                            async def deposit_callback(deposit_data):
+                                app.logger.info(f"Processing deposit: {deposit_data}")
+                                
+                            await deposit_helper.start_monitoring(deposit_callback)
+                        except Exception as e:
+                            app.logger.error(f"Error in monitoring: {str(e)}")
+
+                    self.loop.run_until_complete(monitor())
+                except Exception as e:
+                    app.logger.error(f"Failed to start monitoring: {str(e)}")
+                finally:
+                    self.loop.close()
+
+        self.monitor_thread = threading.Thread(target=run_async_monitoring)
+        self.monitor_thread.daemon = True
+        self.monitor_thread.start()
+        app.logger.info("Deposit monitoring started")
+
+    def stop_monitoring(self):
+        """Stop the monitoring thread"""
+        if self.monitor_thread is None:
+            return
+
+        if self.loop is not None:
+            async def cleanup():
+                from apis.deposit.deposit_helper import deposit_helper
+                await deposit_helper.stop_monitoring()
+
+            if not self.loop.is_closed():
+                self.loop.run_until_complete(cleanup())
+                self.loop.close()
+
+        self.monitor_thread.join(timeout=5)
+        self.monitor_thread = None
+        self.loop = None
+        self._monitoring_started = False
+
+monitor_manager = MonitoringManager()
 
 def create_app():
     app = Flask(__name__)
@@ -43,9 +108,11 @@ def create_app():
     migrate = Migrate(app, db)
     CORS(app)
     
-    with app.app_context():
-        init_deposit_monitoring(app)
-        atexit.register(cleanup_deposit_monitoring)
+    @app.before_request
+    def start_monitoring():
+        monitor_manager.start_monitoring(app)
+
+    atexit.register(monitor_manager.stop_monitoring)
 
     @app.route('/')
     def index():
