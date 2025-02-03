@@ -8,6 +8,7 @@ from .anthropic import api as anthropic_namespace, AnthropicCompletionRes
 from .luma import api as lumaai_namespace
 from .auth import api as auth_resource
 from .deposit import api as deposit_resource, init_deposit_monitoring, cleanup_deposit_monitoring
+from .deep_seek_resource import api as deepseek_resource
 
 authorizations = {
     'Bearer': {
@@ -34,6 +35,7 @@ api.add_namespace(lumaai_namespace)
 api.add_namespace(xai_namespace)
 api.add_namespace(auth_resource)
 api.add_namespace(deposit_resource)
+api.add_namespace(deepseek_resource)
 
 __all__ = [
   'api',

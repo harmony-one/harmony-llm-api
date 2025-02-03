@@ -34,5 +34,6 @@ class Config(object):
     PRICE_ADJUSTMENT = 1
     DATABASE_URL= os.environ.get('DATABASE_URL') if os.environ.get('DATABASE_URL') else 'sqlite:///:memory:'
     NETWORK = os.environ.get('NETWORK') if os.environ.get('NETWORK') else 'localhost'
+    DEEPSEEK_API_KEY = os.environ.get('DEEPSEEK_API_KEY')
 
 config = Config()
