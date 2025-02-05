@@ -1,97 +1,78 @@
+# main.py
 from flask import Flask, jsonify, request
+from flask_migrate import Migrate
 from flask_httpauth import HTTPTokenAuth
+from flask_jwt_extended import JWTManager, get_jwt_identity
 from flask_session import Session
 from flask_cors import CORS
 from apis import api
 from models import db
 from res import CustomError
+from datetime import timedelta
 import config as app_config
-import os
 import logging
 
-API_KEYS = app_config.config.API_KEYS
-app = Flask(__name__)
 auth = HTTPTokenAuth(scheme='Bearer')
+
+def create_app():
+    app = Flask(__name__)
+    print(f"Initializing app with SECRET_KEY: {app_config.config.SECRET_KEY[:10]}...") 
+    # Configuration
     
-# my_key_manager.fetch_api_key_loader(lambda: API_KEYS)
-# print(my_key_manager.fetch_api_key_loader( .create_api_key_loader())
+    app.config['JWT_SECRET_KEY'] = app_config.config.SECRET_KEY
+    app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=1)
+    app.config['JWT_REFRESH_TOKEN_EXPIRES'] = timedelta(days=30)
 
-#  .init_app() . fetch_api_key_loader()
+    app.config['JWT_DECODE_ALGORITHMS'] = ['HS256']
+    app.config['JWT_ENCODE_NBF'] = False  # Disable "not before" claim
+    app.config['JWT_ERROR_MESSAGE_KEY'] = 'message'
 
-app.config['SECRET_KEY']=app_config.config.SECRET_KEY
-app.config['SESSION_PERMANENT'] = True
-app.config['SQLALCHEMY_DATABASE_URI']='sqlite:///:memory:'
-UPLOAD_FOLDER = 'uploads/'
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+    app.config['SECRET_KEY'] = app_config.config.SECRET_KEY
+    app.config['SESSION_PERMANENT'] = True
+    app.config['SQLALCHEMY_DATABASE_URI'] = app_config.config.DATABASE_URL
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    app.config.update(SESSION_COOKIE_SAMESITE="None", SESSION_COOKIE_SECURE=True)
+    app.config['UPLOAD_FOLDER'] = 'uploads/'
 
-# if app_config.config.ENV == 'development':
-#     app.config['SQLALCHEMY_DATABASE_URI']='sqlite:///:memory:'
-# else:
-#     path = app_config.config.CHROMA_SERVER_PATH 
-#     os.makedirs(os.path.dirname(path), exist_ok=True)
-#     # f = open(os.path.join(app_config.config.CHROMA_SERVER_PATH, "app.db"), 'w')
-#     app.config['SQLALCHEMY_DATABASE_URI']="sqlite:///" +os.path.join(app_config.config.CHROMA_SERVER_PATH, "app.db") # chroma.sqlite3
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config.update(SESSION_COOKIE_SAMESITE="None", SESSION_COOKIE_SECURE=True)
-
-sess = Session()
-api.init_app(app)
-sess.init_app(app)
-db.init_app(app)
+    # Initialize extensions
+    db.init_app(app)
+    api.init_app(app)
+    Session().init_app(app)
+    jwt = JWTManager(app)
+    migrate = Migrate(app, db)
+    CORS(app)
 
 
-@auth.verify_token
-def verify_token(token):
-    token = request.headers.get('Authorization')
-    if token:
-        token = token.split(' ')[1]
-    
-    # for web client calls that uses HttpOnly cookies
-    if not token:
-        token = request.cookies.get('session_token')
+    @app.route('/')
+    def index():
+        return 'received!', 200
 
-    if token and token in API_KEYS:
-        return True
+    @app.route('/health')
+    def health():
+        return "I'm healthy", 200
 
-    return False
-
-app.app_context().push()
-db.create_all()
-
-CORS(app)
-logging.info(f'****** APP Enviroment={app_config.config.ENV} *******')
-
-@app.before_request
-@auth.login_required
-def can_activate():
-    logging.debug('checking api key')
-
-@app.route('/')
-def index():
-    return 'received!', 200
-
-@app.route('/health')
-def health():
-    return "I'm healthy", 200
-
-@app.errorhandler(CustomError)
-def handle_custom_error(error):
-    response = {
-        "error": {
-            "status_code": error.error_code,
-            "message": error.message
+    @app.errorhandler(CustomError)
+    def handle_custom_error(error):
+        response = {
+            "error": {
+                "status_code": error.error_code,
+                "message": error.message
+            }
         }
-    }
-    return jsonify(response), error.error_code
+        return jsonify(response), error.error_code
+
+    # Register additional routes
+    from routes import register_additional_routes
+    register_additional_routes(app)
+
+    return app
+
+# Create the Flask application instance
+app = create_app()
 
 if __name__ == '__main__':
-    # from waitress import serve
-    # serve(app, host="0.0.0.0", port=8080) # listen='0.0.0.0:8081') # port=8080, host="0.0.0.0",
     if app_config.config.ENV != 'development':
         from waitress import serve
-        serve(app, host="0.0.0.0", port=8080) 
+        serve(app, host="0.0.0.0", port=8080)
     else:
         app.run(debug=True)
-
-
-# python main.py

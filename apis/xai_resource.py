@@ -3,6 +3,7 @@ from flask import request, Response, current_app as app
 from flask_restx import Namespace, Resource
 import anthropic
 import json
+from .auth import require_token
 from res import EngMsg as msg, CustomError
 from config import config
 from services.telegram import telegram_report_error
@@ -36,6 +37,7 @@ def extract_response_data(response):
 @api.route('/completions')
 class XaiCompletionRes(Resource):
     
+    @require_token
     def post(self):
         """
         Endpoint to handle xAI request.
