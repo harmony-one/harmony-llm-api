@@ -4,7 +4,9 @@ from flask_restx import Namespace, Resource
 from openai import OpenAIError
 import json
 import threading
-from llama_index.llms.base import ChatMessage
+from llama_index.core.llms import ChatMessage
+# from llama_index.chat_engine.types import ChatMessage
+# from llama_index.llms.base import ChatMessage
 from ..auth import require_token
 from res import EngMsg as msg
 from storages import chromadb

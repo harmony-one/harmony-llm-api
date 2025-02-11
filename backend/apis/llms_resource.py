@@ -6,7 +6,7 @@ from .vertex_resource import VertexGeminiCompletionRes
 from .anthropic import AnthropicCompletionRes
 from flask_restx import Namespace, Resource
 from litellm import completion
-from openai.error import OpenAIError
+from openai import OpenAIError
 import json
 
 from res import EngMsg as msg, CustomError

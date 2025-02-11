@@ -7,17 +7,26 @@ from services import telegram_report_error
 from res import EngMsg as msg, CustomError
 from config import config
 
-api = Namespace('deepseek', description=msg.API_NAMESPACE_DEEPSEEK_DESCRIPTION)
+api = Namespace('deepseek', 'DeepSeek API') # description=msg.API_NAMESPACE_DEEPSEEK_DESCRIPTION)
 
+print(config.DEEPSEEK_API_KEY) 
+# OPENAI_API_KEY
 client = OpenAI(
-    api_key=config.DEEPSEEK_API_KEY,  # You'll need to add this to your config
-    base_url="https://api.deepseek.com"
+    # api_key=config.DEEPSEEK_API_KEY,  # You'll need to add this to your config
+    # base_url="https://api.deepseek.com"
 )
 
 def data_generator(response):
     for chunk in response:
-        if chunk.choices[0].delta.content is not None:
-            yield f"{chunk.choices[0].delta.content}"
+        if chunk.choices == []:
+            usage = dict(chunk.usage)
+            prompt_tokens = usage['prompt_tokens']
+            completion_tokens = usage['completion_tokens']
+        elif chunk.choices[0].delta.content is not None:
+            text = chunk.choices[0].delta.content
+            yield f"{text}"
+    yield f"Input Tokens: {prompt_tokens}"
+    yield f"Output Tokens: {completion_tokens}"
 
 @api.route('/completions')
 class DeepSeekCompletionRes(Resource):
@@ -46,19 +55,18 @@ class DeepSeekCompletionRes(Resource):
                 "messages": messages,
                 "stream": data.get('stream', False)
             }
-
             # Add optional parameters if they exist in the request
             if 'temperature' in data:
                 completion_args['temperature'] = float(data['temperature'])
             if 'max_tokens' in data:
                 completion_args['max_tokens'] = int(data['max_tokens'])
-
+            if data.get('stream'):
+                completion_args['stream_options']={"include_usage": True}
             response = client.chat.completions.create(**completion_args)
 
             # Handle streaming response
             if data.get('stream'):
                 return Response(data_generator(response), mimetype='text/event-stream')
-
             # Handle regular response
             return response.model_dump(), 200
 

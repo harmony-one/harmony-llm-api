@@ -2,7 +2,7 @@ import os
 import shutil
 
 from storages import ChromaStorage
-from llama_index.chat_engine.types import ChatMode
+from llama_index.core.chat_engine.types import ChatMode
 from res import InvalidCollectionName
 class CollectionHelper:
 

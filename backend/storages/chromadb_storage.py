@@ -1,7 +1,8 @@
 
-from llama_index import Document, VectorStoreIndex, LLMPredictor, ServiceContext, PromptHelper
-from llama_index.vector_stores import ChromaVectorStore
-from llama_index.storage.storage_context import StorageContext
+from llama_index.core import Document, VectorStoreIndex, ServiceContext, PromptHelper
+# from llama_index.core.llms. import LLMPredictor
+from llama_index.vector_stores.chroma.base import ChromaVectorStore
+from llama_index.core.storage import StorageContext
 import chromadb
 from chromadb.config import Settings
 import hashlib

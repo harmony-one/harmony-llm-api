@@ -1,5 +1,5 @@
 import threading
-from anthropic.types.beta.tools import ToolParam, ToolsBetaMessageParam
+# from anthropic.types.beta.tools import ToolParam, ToolsBetaMessageParam
 from uuid import uuid4
 from flask import request, jsonify, Response, make_response, abort, current_app as app
 from flask_restx import Namespace, Resource
@@ -18,11 +18,7 @@ from werkzeug.utils import secure_filename
 from werkzeug.datastructures import FileStorage
 
 api = Namespace('anthropic', description=msg.API_NAMESPACE_ANTHROPIC_DESCRIPTION)
-
-client = anthropic.Anthropic(
-    # defaults to os.environ.get("ANTHROPIC_API_KEY")
-    api_key=config.ANTHROPIC_API_KEY, 
-)
+client = anthropic.Anthropic(api_key=config.ANTHROPIC_API_KEY)
 
 parser = api.parser()
 parser.add_argument('pdf', type=FileStorage, location='files')

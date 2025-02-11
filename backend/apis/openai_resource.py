@@ -4,7 +4,11 @@ import os
 from flask import g, request, jsonify, make_response, current_app as app
 from flask_restx import Namespace, Resource
 from werkzeug.utils import secure_filename
-from openai.error import OpenAIError
+# from openai 
+
+# .types.
+
+# .error import OpenAIError
 from .auth import require_any_auth, require_token
 from res import EngMsg as msg, CustomError
 from services import telegram_report_error
@@ -65,7 +69,7 @@ class UploadAudioFile(Resource):
             else:
                 return make_response(jsonify({"error": 'Invalid file format'})), 400
                 
-        except OpenAIError as e:
+        except openai.OpenAIError as e:
             error_message = str(e)
             app.logger.error(f"OpenAI API Error: {error_message}")
             telegram_report_error("openai", "NO_CHAT_ID", e.code, error_message)
@@ -119,7 +123,7 @@ class GenerateImage(Resource):
 
             return {"images": [img['url'] for img in response['data']]}, 200
 
-        except OpenAIError as e:
+        except openai.OpenAIError as e:
             error_message = str(e)
             app.logger.error(f"OpenAI API Error: {error_message}")
             telegram_report_error("openai", "NO_CHAT_ID", e.code, error_message)
