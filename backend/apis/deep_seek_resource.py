@@ -10,23 +10,42 @@ from config import config
 api = Namespace('deepseek', 'DeepSeek API') # description=msg.API_NAMESPACE_DEEPSEEK_DESCRIPTION)
 
 print(config.DEEPSEEK_API_KEY) 
+
 # OPENAI_API_KEY
 client = OpenAI(
-    # api_key=config.DEEPSEEK_API_KEY,  # You'll need to add this to your config
-    # base_url="https://api.deepseek.com"
+    api_key=config.OPEN_ROUTER_DEEPSEEK_API_KEY,  
+    base_url=config.OPEN_ROUTER_DEEPSEEK_BASE_URL
 )
 
+def get_model_by_provider(model):
+    if client.base_url.host.find('openrouter') != -1:
+        if model.find('chat') != -1:
+            return f"deepseek/deepseek-r1:free"
+    return model
+
 def data_generator(response):
-    for chunk in response:
-        if chunk.choices == []:
-            usage = dict(chunk.usage)
-            prompt_tokens = usage['prompt_tokens']
-            completion_tokens = usage['completion_tokens']
-        elif chunk.choices[0].delta.content is not None:
-            text = chunk.choices[0].delta.content
-            yield f"{text}"
-    yield f"Input Tokens: {prompt_tokens}"
-    yield f"Output Tokens: {completion_tokens}"
+    prompt_tokens = 0
+    completion_tokens = 0
+    try:
+        for chunk in response:
+            if hasattr(chunk, 'usage') and chunk.usage is not None:
+                usage = dict(chunk.usage)
+                prompt_tokens = usage.get('prompt_tokens', 0)
+                completion_tokens = usage.get('completion_tokens', 0)
+            elif (hasattr(chunk, 'choices') and 
+                  chunk.choices and 
+                  hasattr(chunk.choices[0], 'delta') and 
+                  hasattr(chunk.choices[0].delta, 'content') and 
+                  chunk.choices[0].delta.content is not None):
+                content = chunk.choices[0].delta.content
+                if content.strip(): 
+                    yield content
+        
+        if prompt_tokens or completion_tokens:
+            yield f"\nInput Tokens: {prompt_tokens}\nOutput Tokens: {completion_tokens}"
+    except Exception as e:
+        app.logger.error(f"Streaming error: {str(e)}")
+        yield f"Error: {str(e)}"
 
 @api.route('/completions')
 class DeepSeekCompletionRes(Resource):
@@ -48,10 +67,10 @@ class DeepSeekCompletionRes(Resource):
 
             # Extract messages from the request
             messages = [{"content": m["content"], "role": m["role"]} for m in data.get('messages', [])]
-            
+            model = get_model_by_provider(data.get('model', 'deepseek-chat'))
             # Prepare the completion request
             completion_args = {
-                "model": data.get('model', 'deepseek-chat'),
+                "model": model,
                 "messages": messages,
                 "stream": data.get('stream', False)
             }
