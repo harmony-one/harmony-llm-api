@@ -9,16 +9,24 @@ from config import config
 
 api = Namespace('deepseek', 'DeepSeek API') # description=msg.API_NAMESPACE_DEEPSEEK_DESCRIPTION)
 
-print(config.DEEPSEEK_API_KEY) 
+print('FCO:::::::::::::', config.OPEN_ROUTER_DEEPSEEK_API_KEY) 
 
+DEFAULT_HEADERS = {
+    "HTTP-Referer": "https://harmony.one", 
+    "X-Title": "Harmony LLM API",
+}
 # OPENAI_API_KEY
 client = OpenAI(
     api_key=config.OPEN_ROUTER_DEEPSEEK_API_KEY,  
-    base_url=config.OPEN_ROUTER_DEEPSEEK_BASE_URL
+    base_url=config.OPEN_ROUTER_DEEPSEEK_BASE_URL,
+    # default_headers=DEFAULT_HEADERS # required by Open ROUTER
 )
 
+def check_open_router_provider():
+    return client.base_url.host.find('openrouter') != -1
+
 def get_model_by_provider(model):
-    if client.base_url.host.find('openrouter') != -1:
+    if check_open_router_provider():
         if model.find('chat') != -1:
             return f"deepseek/deepseek-r1:free"
     return model
@@ -42,7 +50,9 @@ def data_generator(response):
                     yield content
         
         if prompt_tokens or completion_tokens:
-            yield f"\nInput Tokens: {prompt_tokens}\nOutput Tokens: {completion_tokens}"
+            yield f"Input Tokens: {prompt_tokens}"
+            yield f"Output Tokens: {completion_tokens}"
+            # yield f"\nInput Tokens: {prompt_tokens}\nOutput Tokens: {completion_tokens}"
     except Exception as e:
         app.logger.error(f"Streaming error: {str(e)}")
         yield f"Error: {str(e)}"
@@ -81,8 +91,13 @@ class DeepSeekCompletionRes(Resource):
                 completion_args['max_tokens'] = int(data['max_tokens'])
             if data.get('stream'):
                 completion_args['stream_options']={"include_usage": True}
+            if check_open_router_provider():
+                completion_args['extra_headers'] = {
+                "HTTP-Referer": "https://harmony.one", 
+                "X-Title": "Harmony Llm Api",
+            }
             response = client.chat.completions.create(**completion_args)
-
+            
             # Handle streaming response
             if data.get('stream'):
                 return Response(data_generator(response), mimetype='text/event-stream')

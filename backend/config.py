@@ -35,5 +35,9 @@ class Config(object):
     DATABASE_URL= os.environ.get('DATABASE_URL') if os.environ.get('DATABASE_URL') else 'sqlite:///:memory:'
     NETWORK = os.environ.get('NETWORK') if os.environ.get('NETWORK') else 'localhost'
     DEEPSEEK_API_KEY = os.environ.get('DEEPSEEK_API_KEY')
+    DEEPSEEK_BASE_URL = "https://api.deepseek.com"
+    OPEN_ROUTER_DEEPSEEK_API_KEY = os.environ.get('OPEN_ROUTER_DEEPSEEK_API_KEY')
+    OPEN_ROUTER_DEEPSEEK_BASE_URL = "https://openrouter.ai/api/v1"
+
 
 config = Config()

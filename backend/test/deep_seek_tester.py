@@ -31,7 +31,7 @@ class DeepSeekTester:
                 {
                     "name": "Streaming request",
                     "payload": {
-                        "model": "gpt-3.5-turbo", # "deepseek-chat",
+                        "model": "deepseek-chat", # "deepseek-chat",
                         "stream": "True",
                         "messages": [
                             {"role": "system", "content": "You are a helpful assistant"},

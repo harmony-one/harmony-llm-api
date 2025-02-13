@@ -4,7 +4,13 @@ FROM python:3.10.13
 # Set environment variables for configuration
 ENV FLASK_APP=main.py
 ENV FLASK_ENV=production
- 
+# Keep virtualenv in project
+ENV PIPENV_VENV_IN_PROJECT=1
+# Disable spinner for cleaner logs
+ENV PIPENV_NOSPIN=1
+# Hide emojis in logs
+ENV PIPENV_HIDE_EMOJIS=1  
+
 # Set the working directory inside the container
 WORKDIR /app
 VOLUME ["/app/data"]
@@ -15,9 +21,14 @@ RUN apt-get update && apt-get install -y \
     gcc \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt /app/
-RUN pip install --no-cache-dir -r requirements.txt --no-deps && \
-    pip install --no-cache-dir -r requirements.txt
+# Install pipenv
+RUN pip install --no-cache-dir pipenv
+
+# Copy Pipfile and Pipfile.lock
+COPY Pipfile Pipfile.lock ./
+
+# Install dependencies using pipenv
+RUN pipenv install --deploy --system 
 
 COPY . /app
 
@@ -26,6 +37,20 @@ RUN chmod +x start.sh
 EXPOSE 8080
 
 CMD ["./start.sh"]
+
+
+
+# COPY requirements.txt /app/
+# RUN pip install --no-cache-dir -r requirements.txt --no-deps && \
+#     pip install --no-cache-dir -r requirements.txt
+
+# COPY . /app
+
+# RUN chmod +x start.sh
+
+# EXPOSE 8080
+
+# CMD ["./start.sh"]
 
 
 #     # Copy the project files to the working directory
