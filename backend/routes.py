@@ -1,5 +1,5 @@
 # routes.py
-from flask import jsonify
+from flask import jsonify, render_template
 from flask_httpauth import HTTPTokenAuth
 
 auth = HTTPTokenAuth(scheme='Bearer')
@@ -22,4 +22,6 @@ def register_additional_routes(app):
         # Example additional route
         return jsonify({"transactions": []}), 200
 
-    # Add more routes as needed
+    @app.route('/deposit-page')  # Using deposit-page to avoid conflict with /deposit API
+    def deposit_page():
+        return render_template('deposit.html')
