@@ -26,7 +26,7 @@ def get_model_by_provider(model):
     if check_open_router_provider():
         if model.find('chat') != -1:
             return f"deepseek/deepseek-r1:free"
-    return model
+    return f"deepseek/{model}"
 
 def data_generator(response):
     prompt_tokens = 0
