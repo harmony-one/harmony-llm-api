@@ -37,6 +37,7 @@ litellm = "==1.60.0"
 httpx = "==0.27.2"
 llama-index-vector-stores-chroma = "==0.2.2"
 anthropic = "==0.49.0"
+pulsar-client = "==3.6.1"
 
 [dev-packages]
 
