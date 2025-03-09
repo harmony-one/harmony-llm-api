@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "5543a8a1bfcea27e15f2248d4af1d1dc50b6bf0b442c0e8fe6b141f055300ffe"
+            "sha256": "cef78398e811ec491686a55f67a8afe36447f4089960d4cd8bb7cb9f40ebd0f5"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -146,12 +146,12 @@
         },
         "anthropic": {
             "hashes": [
-                "sha256:49a4b0194faa958ec156e4d242a3b6e029d91389bbed1fc267b5b903a4cfef0d",
-                "sha256:781ce7bcf8d377e4077b71a0c9045c2f7947db6f6c9fe70352e2a7838e055e59"
+                "sha256:bbc17ad4e7094988d2fa86b87753ded8dce12498f4b85fe5810f208f454a8375",
+                "sha256:c09e885b0f674b9119b4f296d8508907f6cff0009bc20d5cf6b35936c40b4398"
             ],
             "index": "pypi",
-            "markers": "python_version >= '3.7'",
-            "version": "==0.7.7"
+            "markers": "python_version >= '3.8'",
+            "version": "==0.49.0"
         },
         "anyio": {
             "hashes": [

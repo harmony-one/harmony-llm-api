@@ -105,7 +105,6 @@ class AnthropicCompletionRes(Resource):
         try:
             if data.get('stream') == "True":
                 data['stream'] = True  # Convert stream to boolean
-
             messages = [{"content": m["content"], "role": m["role"]} for m in data.get('messages')]
             data['messages'] = messages
             response = client.messages.create(**data)
