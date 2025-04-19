@@ -1,4 +1,5 @@
 import concurrent.futures
+import random
 import lumaai
 
 from flask import request, jsonify, Response, make_response, abort, current_app as app
@@ -18,11 +19,11 @@ executor = concurrent.futures.ThreadPoolExecutor(max_workers=config.MAX_WORKERS)
 
 def get_generation_count():
   try:
-      generations = luna_client.generations.list()
-      in_progress = count_generation_in_progress(generations)
-      return in_progress
+        generations = luna_client.generations.list()
+        in_progress = count_generation_in_progress(generations)
+        return in_progress
   except lumaai.APIStatusError as e:
-      return 1
+        return random.choice([1, 1, 1, 1, 2, 2, 3])
 
 # This class is for testing
 class Generation:
