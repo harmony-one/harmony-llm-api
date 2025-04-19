@@ -17,3 +17,4 @@ test/.test_tokens.json
 backend/res/service_account.json
 
 backup.bundle
+.qodo

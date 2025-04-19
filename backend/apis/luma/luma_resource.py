@@ -15,6 +15,16 @@ api = Namespace('luma', description=msg.API_NAMESPACE_ANTHROPIC_DESCRIPTION)
 
 executor = concurrent.futures.ThreadPoolExecutor(max_workers=config.MAX_WORKERS)
 
+
+def get_generation_count():
+  try:
+      generations = luna_client.generations.list()
+      in_progress = count_generation_in_progress(generations)
+      return in_progress
+  except lumaai.APIStatusError as e:
+      return 1
+
+# This class is for testing
 class Generation:
     def __init__(self, id):
         self.id = id
@@ -36,11 +46,10 @@ class LumaAiGenerationRes(Resource):
         try:
             if not prompt or not chat_id:
                 return {'error': 'Both prompt and chat_id are required'}, 400
-            # generation = Generation(id="b50b566e-214f-46f6-9553-60a3bb8b076d")
-            generation = luna_client.generations.create(prompt=prompt) #Generation(id="b50b566e-214f-46f6-9553-60a3bb8b076d")
+            # generation = Generation(id="688ad098-2290-487a-8ef9-bd0fea35414e")
+            generation = luna_client.generations.create(prompt=prompt)
             ## generation = Generation(id="0da62dac-f11f-4c47-0d7c-85324484c6bf")
-            generation_list = luna_client.generations.list(limit=100, offset=0)
-            in_progress = count_generation_in_progress(generation_list)
+            in_progress = get_generation_count()
             queue_time = get_queue_time(in_progress)
             app.logger.info(f'Processing generation {generation.id} | generations in queue {in_progress}' )
             executor.submit(process_generation, prompt, generation.id, chat_id)
