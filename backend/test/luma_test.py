@@ -2,9 +2,11 @@ import os
 from lumaai import LumaAI
 import lumaai
 
-client = LumaAI(
-    auth_token=os.environ.get("LUMAAI_API_KEY"),  # This is the default and can be omitted
-)
+# from config import config
+print(os.environ.get("LUMAAI_API_KEY"))
+client = LumaAI(auth_token=os.environ.get("LUMAAI_API_KEY"))
+    # auth_token=os.environ.get("LUMAAI_API_KEY"),  # This is the default and can be omitted
+# )
 
 # generation = LumaAI.generations()
 # generation = client.generations.create(
